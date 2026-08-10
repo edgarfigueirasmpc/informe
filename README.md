@@ -95,12 +95,15 @@ Está preparado para **GitHub Pages**, que no necesita cuenta nueva ni tarjeta:
 2. Cada `push` a `main` compila, pasa los tests y publica
    ([`.github/workflows/desplegar.yml`](.github/workflows/desplegar.yml)).
 3. Para el dominio propio, en *Settings → Pages → Custom domain* poner
-   `informe.cacharolo.es`. El fichero [`public/CNAME`](public/CNAME) ya lo
+   `informes.cacharolo.es`. El fichero [`public/CNAME`](public/CNAME) ya lo
    declara. En el panel de DNS de Hostalia:
 
    | Tipo | Nombre | Valor |
    | --- | --- | --- |
-   | CNAME | `informe` | `edgarfigueirasmpc.github.io` |
+   | CNAME | `informes` | `edgarfigueirasmpc.github.io` |
+
+   El nombre del subdominio tiene que coincidir **exactamente** con el de
+   `public/CNAME`: si no, GitHub rechaza el dominio en cada despliegue.
 
 4. Marcar *Enforce HTTPS* cuando GitHub termine de emitir el certificado.
 
