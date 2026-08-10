@@ -1,15 +1,28 @@
 import { clearCookieHeader, cookieHeader, decideRole, issueToken } from '../../shared/auth';
-import { configError, currentRole, isSecure, json, type Env } from '../../shared/env';
+import { configError, currentRole, isSecure, json, metodoNoPermitido, type Env } from '../../shared/env';
+
+export function handleSession(request: Request, env: Env): Promise<Response> | Response {
+  switch (request.method) {
+    case 'GET':
+      return quienSoy(request, env);
+    case 'POST':
+      return entrar(request, env);
+    case 'DELETE':
+      return salir(request);
+    default:
+      return metodoNoPermitido('GET, POST, DELETE');
+  }
+}
 
 /** Quién soy: lo consulta la app al arrancar para saber si pedir contraseña. */
-export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+async function quienSoy(request: Request, env: Env): Promise<Response> {
   const bad = configError(env);
   if (bad) return bad;
   return json({ role: await currentRole(request, env) });
-};
+}
 
 /** Entrar. Una misma casilla admite la clave de consulta o la de publicación. */
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+async function entrar(request: Request, env: Env): Promise<Response> {
   const bad = configError(env);
   if (bad) return bad;
 
@@ -31,11 +44,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   return json(
     { role },
-    { headers: { 'Set-Cookie': cookieHeader(await issueToken(role, env.AUTH_SECRET), isSecure(request)) } },
+    {
+      headers: {
+        'Set-Cookie': cookieHeader(await issueToken(role, env.AUTH_SECRET), isSecure(request)),
+      },
+    },
   );
-};
+}
 
 /** Salir. */
-export const onRequestDelete: PagesFunction<Env> = async ({ request }) => {
+function salir(request: Request): Response {
   return json({ role: null }, { headers: { 'Set-Cookie': clearCookieHeader(isSecure(request)) } });
-};
+}

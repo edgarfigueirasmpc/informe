@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "informe",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-01",
+
+  // El sitio compilado. `run_worker_first` deja que los ficheros estáticos los
+  // reparta la plataforma sin invocar al Worker, y manda a éste sólo la API.
+  // `single-page-application` hace que cualquier otra ruta devuelva el index.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // El informe publicado: un único registro que se sobreescribe cada día.
+  // El identificador NO es un secreto, pero hay que rellenarlo con el del
+  // namespace real antes de desplegar (ver el README).
+  "kv_namespaces": [
+    {
+      "binding": "INFORME",
+      "id": "PENDIENTE"
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}

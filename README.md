@@ -71,28 +71,36 @@ npm test        # tests del parser y de los cálculos, contra un PDF real
 npm run build   # comprobación de tipos + compilación
 ```
 
-## Despliegue en Cloudflare Pages
+## Despliegue en Cloudflare Workers
 
-El dominio puede seguir en Hostalia: sólo hay que apuntarle un CNAME.
+Se despliega como un **Worker con assets estáticos**: el mismo Worker sirve el
+sitio compilado y la API. El dominio puede seguir en Hostalia, sólo hay que
+apuntarle un CNAME.
 
-**1. Subir el repositorio a GitHub.**
+**1. Crear el almacén, antes que nada.** *Storage & Databases → KV → Create*,
+con el nombre `informe`. Copiar el **Namespace ID** que aparece al crearlo y
+pegarlo en [`wrangler.jsonc`](wrangler.jsonc), sustituyendo `"PENDIENTE"`:
 
-**2. Crear el proyecto.** En Cloudflare, *Workers & Pages → Create → Pages →
-Connect to Git*, y elegir el repositorio. Configuración de compilación:
+```jsonc
+"kv_namespaces": [{ "binding": "INFORME", "id": "el-id-que-te-ha-dado" }]
+```
+
+Ese identificador no es un secreto y va versionado a propósito: en el modelo de
+Workers manda el fichero de configuración, así que un binding añadido a mano
+desde el panel se perdería en el siguiente despliegue.
+
+**2. Subir el cambio a GitHub** (`git push`).
+
+**3. Crear la aplicación.** En Cloudflare, *Compute (Workers) → Create →
+Import a repository*, y elegir el repositorio. Los comandos:
 
 | Campo | Valor |
 | --- | --- |
-| Framework preset | None |
 | Build command | `npm run build` |
-| Build output directory | `dist` |
+| Deploy command | `npx wrangler deploy` |
 
-**3. Crear el almacén.** *Storage & Databases → KV → Create*, con el nombre
-`informe`. Luego, en el proyecto de Pages, *Settings → Bindings → Add → KV
-namespace*: nombre de la variable `INFORME`, apuntando a ese namespace. Hay que
-añadirlo tanto en **Production** como en **Preview**.
-
-**4. Poner las contraseñas.** En *Settings → Variables and Secrets*, añadirlas
-**como Secret** (no como texto plano):
+**4. Poner las contraseñas.** En el Worker, *Settings → Variables and Secrets*,
+añadirlas **como Secret** (no como texto plano):
 
 | Variable | Para qué |
 | --- | --- |
@@ -108,6 +116,23 @@ openssl rand -base64 32
 
 Como la contraseña se reparte, que sea larga y no adivinable: es lo único que
 separa el informe de internet.
+
+Los secretos se enganchan en el despliegue, no en caliente: si se añaden después
+de la primera compilación, hay que **volver a desplegar** para que el Worker los
+vea.
+
+**5. El dominio.** En el Worker, *Settings → Domains & Routes → Add → Custom
+domain*, e introducir `informe.cacharolo.es`. Cloudflare dará un destino del
+tipo `informe.<subdominio>.workers.dev`. En el panel de DNS de Hostalia:
+
+| Tipo | Nombre | Valor |
+| --- | --- | --- |
+| CNAME | `informe` | el destino que indique Cloudflare |
+
+El certificado tarda unos minutos en emitirse.
+
+**6. Publicar el primer informe.** Entrar con la contraseña de administración y
+subir el PDF del día.
 
 ## Quién puede entrar y quién puede publicar
 
@@ -134,19 +159,6 @@ código ni volver a desplegar.
 Simular cifras lo puede hacer cualquiera en los dos modos: los ajustes se
 quedan en el navegador de cada uno y no afectan a lo que ven los demás.
 
-**5. El dominio.** En el proyecto de Pages, *Custom domains → Set up a custom
-domain* e introducir `informe.cacharolo.es`. Cloudflare dará un destino del tipo
-`informe-cacharolo.pages.dev`. En el panel de DNS de Hostalia, crear:
-
-| Tipo | Nombre | Valor |
-| --- | --- | --- |
-| CNAME | `informe` | `informe-cacharolo.pages.dev` |
-
-El certificado tarda unos minutos en emitirse.
-
-**6. Publicar el primer informe.** Entrar con la contraseña de administración y
-subir el PDF del día.
-
 ## Estructura
 
 ```
@@ -155,7 +167,7 @@ src/lib/pdf.ts           Carga pdf.js (perezosa: sólo al subir un informe)
 src/lib/text.ts          Números en formato español y arreglo del mojibake
 src/lib/model.ts         Tipos y toda la aritmética de simulación
 src/components/          Interfaz
-functions/api/           Endpoints de Cloudflare Pages
+worker/                  El Worker: enrutado, y la API bajo /api
 shared/                  Sesiones firmadas y acceso a KV
 ```
 

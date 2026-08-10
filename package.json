@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
-    "start": "npm run build && wrangler pages dev dist --kv INFORME --compatibility-date=2026-08-01 --port 8788"
+    "start": "npm run build && wrangler dev --port 8788",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "pdfjs-dist": "^4.10.38",

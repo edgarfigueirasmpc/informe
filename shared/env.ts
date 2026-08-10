@@ -2,6 +2,8 @@ import type { Role } from './auth';
 import { COOKIE_NAME, readCookie, readToken } from './auth';
 
 export interface Env {
+  /** El sitio estático compilado. Lo inyecta la plataforma. */
+  ASSETS: Fetcher;
   /** KV donde vive el informe. Un único registro que se sobreescribe. */
   INFORME: KVNamespace;
   /** Contraseña de entrada, la que se reparte a los compañeros. */
@@ -26,6 +28,13 @@ export function json(data: unknown, init: ResponseInit = {}): Response {
       ...init.headers,
     },
   });
+}
+
+export function metodoNoPermitido(permitidos: string): Response {
+  return json(
+    { error: `Método no permitido. Admite: ${permitidos}.` },
+    { status: 405, headers: { Allow: permitidos } },
+  );
 }
 
 export function configError(env: Env): Response | null {

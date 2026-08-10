@@ -15,5 +15,5 @@
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo"
   },
-  "include": ["functions", "shared", "src/lib/model.ts"]
+  "include": ["worker", "shared", "src/lib/model.ts"]
 }
