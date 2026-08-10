@@ -1,3 +1,6 @@
+import logoUrl from '../assets/logo.png';
+import mpcUrl from '../assets/mpc.png';
+
 /**
  * Logo corporativo.
  *
@@ -7,9 +10,11 @@
  * sobre fondo oscuro.
  *
  * Se sirve al triple del tamaño al que se ve, para que quede nítido en retina.
+ * Se importa en vez de referenciarlo por ruta absoluta para que funcione igual
+ * en la raíz de un dominio que colgando de un subdirectorio.
  */
 export function Mark({ className = 'marca' }: { className?: string }) {
-  return <img className={className} src="/logo.png" alt="" width={82} height={192} />;
+  return <img className={className} src={logoUrl} alt="" width={82} height={192} />;
 }
 
 /**
@@ -19,7 +24,7 @@ export function Mark({ className = 'marca' }: { className?: string }) {
 export function FirmaMpc() {
   return (
     <footer className="firma">
-      <img className="firma__marca" src="/mpc.png" alt="" width={106} height={96} />
+      <img className="firma__marca" src={mpcUrl} alt="" width={106} height={96} />
       <span className="eyebrow">Maderas Paco Cacharolo</span>
     </footer>
   );

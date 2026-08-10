@@ -704,9 +704,41 @@ td:last-child .editable {
   flex: none;
 }
 
-.acceso .firma {
+/* --- Compartir --------------------------------------------------------------- */
+
+/* El enlace es el producto: esta caja es lo que hay que ver después de leer la
+   tabla, así que se lleva el azul corporativo y algo de aire. */
+.compartir {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
   margin-top: 2rem;
-  justify-content: center;
+  padding: 1.4rem 1.6rem;
+  border: var(--rule) solid var(--line);
+  border-left: 3px solid var(--azul);
+  border-radius: var(--radio);
+  background: var(--azul-soft);
+  box-shadow: var(--sombra);
+}
+
+.compartir__titulo {
+  margin: 0 0 0.3rem;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.compartir__texto {
+  margin: 0;
+  max-width: 58ch;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.compartir__texto--aviso {
+  margin-top: 0.45rem;
+  color: var(--naranja);
 }
 
 /* --- Botones ---------------------------------------------------------------- */
@@ -746,12 +778,38 @@ td:last-child .editable {
   border-color: var(--ink);
 }
 
-/* --- Publicación ------------------------------------------------------------ */
+/* --- Carga del PDF ----------------------------------------------------------- */
 
-.publicar {
-  margin-top: 3rem;
+/* Sin informe todavía, la zona de carga es la pantalla entera: va pegada al
+   titular, sin línea que las separe, porque son una misma cosa. */
+.cargador {
+  margin-top: 0.5rem;
+}
+
+.cargador > .eyebrow {
+  display: none;
+}
+
+/* Con un informe ya en pantalla, cargar otro es una acción de segunda fila. */
+.cargador--secundario {
+  margin-top: 2.5rem;
   padding-top: 1.5rem;
   border-top: var(--rule) solid var(--line-strong);
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+.cargador--secundario > .eyebrow {
+  display: block;
+}
+
+.cargador--secundario:hover,
+.cargador--secundario:focus-within {
+  opacity: 1;
+}
+
+.cargador--secundario .zona {
+  padding: 1.4rem 1.5rem;
 }
 
 .zona {
@@ -783,84 +841,17 @@ td:last-child .editable {
   margin: 0;
 }
 
-/* --- Pantalla de acceso ------------------------------------------------------ */
-
-.acceso {
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: var(--gap);
-}
-
-.acceso__caja {
-  width: min(28rem, 100%);
-  padding: clamp(1.75rem, 5vw, 2.75rem);
-  background: var(--surface);
-  border: var(--rule) solid var(--line);
-  border-radius: var(--radio);
-  box-shadow: var(--sombra-alta);
-}
-
-.acceso__marca {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding-bottom: 1.25rem;
-  border-bottom: var(--rule) solid var(--line-strong);
-}
-
-.acceso__marca .marca {
-  height: 52px;
-}
-
-.acceso__titulo {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.acceso__form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 1.75rem;
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.campo__input {
-  width: 100%;
-  padding: 0.75rem 0;
-  border: 0;
-  border-bottom: var(--rule) solid var(--line-strong);
-  background: transparent;
-  font-size: 16px;
-  letter-spacing: 0.08em;
-}
-
-.campo__input:focus {
-  outline: 0;
-  border-bottom-color: var(--naranja);
-}
-
-.error {
-  color: var(--naranja);
-  font-size: 12px;
-  min-height: 1.2em;
-}
-
 /* --- Estados vacíos ---------------------------------------------------------- */
 
 .vacio {
-  padding: 4.5rem 0;
+  padding: 3.5rem 0 1.25rem;
   text-align: center;
   color: var(--ink-soft);
+}
+
+.vacio p {
+  max-width: 54ch;
+  margin-inline: auto;
 }
 
 .vacio__titulo {
@@ -1022,7 +1013,7 @@ td:last-child .editable {
 
   body::before,
   .no-imprimir,
-  .publicar,
+  .cargador,
   .simbar {
     display: none !important;
   }

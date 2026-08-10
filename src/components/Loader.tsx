@@ -1,30 +1,31 @@
 import { useRef, useState } from 'react';
 import type { Report } from '../lib/model';
-import { ApiError, publishReport } from '../lib/api';
 import { fechaCorta } from '../lib/format';
 
 interface Props {
-  onPublished: (report: Report) => void;
+  onLoaded: (report: Report) => void;
+  /** Con un informe ya en pantalla, cargar otro es sustituirlo. */
+  conInforme: boolean;
 }
 
 type Estado =
   | { fase: 'reposo' }
   | { fase: 'leyendo' }
-  | { fase: 'publicando' }
   | { fase: 'error'; mensaje: string }
   | { fase: 'listo'; cuando: string };
 
 /**
- * Subida del PDF diario. El PDF se lee aquí, en el navegador: al servidor sólo
- * viajan los números ya extraídos, nunca el documento.
+ * Lectura del PDF diario. Ocurre entera en el navegador: el documento no se
+ * envía a ningún sitio ni se guarda, sólo se extraen los números y pasan a
+ * formar parte del enlace.
  */
-export function Publisher({ onPublished }: Props) {
+export function Loader({ onLoaded, conInforme }: Props) {
   const [estado, setEstado] = useState<Estado>({ fase: 'reposo' });
   const [avisos, setAvisos] = useState<string[]>([]);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const ocupado = estado.fase === 'leyendo' || estado.fase === 'publicando';
+  const ocupado = estado.fase === 'leyendo';
 
   async function procesar(file: File | undefined) {
     if (!file || ocupado) return;
@@ -41,11 +42,7 @@ export function Publisher({ onPublished }: Props) {
       const { parsePdfFile } = await import('../lib/pdf');
       const { report, warnings } = await parsePdfFile(file);
       setAvisos(warnings);
-
-      setEstado({ fase: 'publicando' });
-      await publishReport(report);
-
-      onPublished(report);
+      onLoaded(report);
       setEstado({
         fase: 'listo',
         cuando: `${fechaCorta(report.header.desde)} – ${fechaCorta(report.header.hasta)}`,
@@ -53,10 +50,7 @@ export function Publisher({ onPublished }: Props) {
     } catch (err) {
       setEstado({
         fase: 'error',
-        mensaje:
-          err instanceof ApiError || err instanceof Error
-            ? err.message
-            : 'No se ha podido leer el PDF.',
+        mensaje: err instanceof Error ? err.message : 'No se ha podido leer el PDF.',
       });
     } finally {
       if (inputRef.current) inputRef.current.value = '';
@@ -64,8 +58,8 @@ export function Publisher({ onPublished }: Props) {
   }
 
   return (
-    <section className="publicar no-imprimir">
-      <div className="eyebrow">Publicar informe</div>
+    <section className={`cargador no-imprimir ${conInforme ? 'cargador--secundario' : ''}`}>
+      <div className="eyebrow">{conInforme ? 'Cargar otro informe' : 'Cargar el informe'}</div>
 
       <div
         className={`zona ${arrastrando ? 'zona--activa' : ''}`}
@@ -89,20 +83,16 @@ export function Publisher({ onPublished }: Props) {
         />
 
         <button
-          className="boton"
+          className={`boton ${conInforme ? '' : 'boton--primario'}`}
           type="button"
           disabled={ocupado}
           onClick={() => inputRef.current?.click()}
         >
-          {estado.fase === 'leyendo'
-            ? 'Leyendo el PDF'
-            : estado.fase === 'publicando'
-              ? 'Publicando'
-              : 'Elegir el PDF del día'}
+          {ocupado ? 'Leyendo el PDF' : 'Elegir el PDF del día'}
         </button>
 
         <p className="zona__pista">
-          O arrástralo aquí. Se lee en tu navegador y sustituye al informe anterior para todos.
+          O arrástralo aquí. Se lee en tu navegador; ni se sube ni se guarda en ningún sitio.
         </p>
       </div>
 
@@ -113,7 +103,9 @@ export function Publisher({ onPublished }: Props) {
       )}
 
       {estado.fase === 'listo' && (
-        <div className="aviso">Publicado el informe del {estado.cuando}. Ya lo ven todos.</div>
+        <div className="aviso">
+          Informe del {estado.cuando} listo. El enlace de arriba ya lo lleva dentro.
+        </div>
       )}
 
       {avisos.length > 0 && (

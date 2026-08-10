@@ -24,7 +24,13 @@ from PIL import Image
 CROMA_FONDO = 16
 CROMA_DIBUJO = 58
 
-DESTINO = Path(__file__).resolve().parent.parent / "public"
+RAIZ = Path(__file__).resolve().parent.parent
+
+# Los logos que se pintan en la página se importan desde el código, para que
+# Vite les ponga huella y respete la ruta base; los iconos del navegador van
+# a public/, porque los referencia index.html por nombre.
+MARCAS = RAIZ / "src" / "assets"
+ICONOS = RAIZ / "public"
 
 
 def extraer(origen: Path) -> Image.Image:
@@ -84,19 +90,20 @@ def main() -> None:
 
     # En pantalla se ve a 34 px (52 en la pantalla de acceso): con 192 va
     # sobrado incluso en retina, y pesa una cuarta parte que exportarlo a 512.
-    a_alto(logo, 192).save(DESTINO / "logo.png")
+    a_alto(logo, 192).save(MARCAS / "logo.png")
 
     for lado, nombre in [(32, "favicon-32.png"), (180, "apple-touch-icon.png"), (512, "icono.png")]:
-        cuadrar(logo, lado).save(DESTINO / nombre)
+        cuadrar(logo, lado).save(ICONOS / nombre)
 
     if len(sys.argv) > 2:
         mpc = Image.open(sys.argv[2]).convert("RGBA")
         recorte = mpc.crop(mpc.getbbox())
         print(f"MPC recortado a {recorte.size[0]}x{recorte.size[1]}")
-        a_alto(recorte, 96).save(DESTINO / "mpc.png")
+        a_alto(recorte, 96).save(MARCAS / "mpc.png")
 
-    for f in sorted(DESTINO.glob("*.png")):
-        print(f"  {f.name}: {f.stat().st_size / 1024:.1f} kB")
+    for carpeta in (MARCAS, ICONOS):
+        for f in sorted(carpeta.glob("*.png")):
+            print(f"  {f.relative_to(RAIZ)}: {f.stat().st_size / 1024:.1f} kB")
 
 
 if __name__ == "__main__":

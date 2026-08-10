@@ -1,19 +1,30 @@
 # Informe de toneladas
 
-Aplicación para consultar el informe diario de toneladas por cliente y **simular
-escenarios de suministro** sobre la marcha: se cambia la media diaria de un
-cliente y la estimación mensual del conjunto se recalcula al instante.
+Aplicación para consultar el informe diario de toneladas por cliente y
+**simular escenarios de suministro** sobre la marcha: se cambia la media diaria
+de un cliente y la estimación mensual del conjunto se recalcula al instante.
 
-Una persona sube el PDF del día y el resto lo consulta en
-`informe.cacharolo.es`. Sólo se guarda el último informe: cada publicación pisa
-la anterior.
+**No hay servidor, ni base de datos, ni contraseñas.** Se carga el PDF del día
+y el informe entero pasa a viajar dentro del enlace: compartir la dirección es
+compartir el informe.
 
 ## Cómo funciona
 
-El PDF **se lee en el navegador de quien lo sube**; al servidor sólo viajan los
-números ya extraídos. El documento nunca se almacena en ningún sitio.
+El PDF se lee en el navegador de quien lo carga y no sale de ahí. Los números
+extraídos se comprimen y se guardan en el **fragmento** de la URL —lo que sigue
+a la `#`—, que el navegador nunca envía al servidor. Con el informe de ejemplo,
+1.627 caracteres de datos quedan en una dirección de **591 caracteres**, que
+cabe en cualquier correo o mensaje.
 
-Del PDF sólo se usan:
+De ahí se derivan tres cosas que no hay que construir ni mantener: no hay nada
+que autenticar, nada que se pueda filtrar de un almacén, y nadie depende de que
+otro haya subido el informe. Tampoco se guarda nada en el navegador: ni
+`localStorage`, ni cookies, ni caché de datos.
+
+A cambio, quien tenga el enlace ve las cifras, así que el enlace se reparte con
+el mismo cuidado que se repartiría el PDF.
+
+### Qué se lee del PDF
 
 - La cabecera: periodo, días trabajados, días laborables restantes, total del
   mes y media por día.
@@ -36,15 +47,19 @@ cliente **sólo se le traslada la diferencia** respecto a su dato original. Es l
 misma aritmética del informe en papel: si Finsa pasa de 60 a 180 TN/día, la
 estimación del mes sube de 15.464 a 15.464 + (3.780 − 1.260) = **17.984 TN**.
 
-Las simulaciones son de cada persona: se guardan en su navegador, no se
-publican, y caducan cuando se sube un informe nuevo.
+Cada bloque del resumen enseña dos cifras: la que firma la cabecera del PDF y la
+que sale de sumar cliente a cliente. No coinciden —el informe no cuadra consigo
+mismo— y se muestran las dos en vez de elegir por el lector.
+
+Las simulaciones también van en el enlace, así que se puede compartir un
+escenario y no sólo el informe.
 
 ### Pendiente de cupo
 
 Se compara el cupo pendiente de cada cliente con lo que se estima entregarle en
-los días que quedan de mes, y se marca en verde, ámbar o rojo según se cubra con
-holgura, justo o no llegue. Si la lectura correcta del dato fuera la contraria
-(que el cupo sea un techo que no se debe superar), se cambia en
+los días que quedan de mes, y se marca en azul, ámbar o naranja según se cubra
+con holgura, justo o no llegue. Si la lectura correcta del dato fuera la
+contraria (que el cupo sea un techo que no se debe superar), se cambia en
 `cupoStatus()`, en [`src/lib/model.ts`](src/lib/model.ts).
 
 ## Puesta en marcha en local
@@ -59,150 +74,59 @@ Después:
 
 ```bash
 npm install
-cp .dev.vars.example .dev.vars
-npm start
+npm run dev
 ```
-
-Queda en <http://localhost:8788>, con las funciones y un KV local. `npm run dev`
-levanta sólo el frontend (más rápido para tocar estilos, pero sin API).
 
 ```bash
-npm test        # tests del parser y de los cálculos, contra un PDF real
-npm run build   # comprobación de tipos + compilación
+npm test          # parser, cálculos y codificación en la URL
+npm run build     # comprobación de tipos + compilación
+npm run preview   # sirve lo compilado, como en producción
 ```
 
-## Despliegue en Cloudflare Workers
+## Despliegue
 
-Se despliega como un **Worker con assets estáticos**: el mismo Worker sirve el
-sitio compilado y la API. El dominio puede seguir en Hostalia, sólo hay que
-apuntarle un CNAME.
+El sitio es estático: se puede servir desde cualquier sitio, incluso abrir el
+`index.html` desde el disco. Las rutas son relativas, así que funciona igual en
+la raíz de un dominio que colgando de un subdirectorio.
 
-**1. Crear el almacén, antes que nada.** *Storage & Databases → KV → Create*,
-con el nombre `informe`. Copiar el **Namespace ID** que aparece al crearlo y
-pegarlo en [`wrangler.jsonc`](wrangler.jsonc), sustituyendo `"PENDIENTE"`:
+Está preparado para **GitHub Pages**, que no necesita cuenta nueva ni tarjeta:
 
-```jsonc
-"kv_namespaces": [{ "binding": "INFORME", "id": "el-id-que-te-ha-dado" }]
-```
+1. En el repositorio, *Settings → Pages → Source: **GitHub Actions***.
+2. Cada `push` a `main` compila, pasa los tests y publica
+   ([`.github/workflows/desplegar.yml`](.github/workflows/desplegar.yml)).
+3. Para el dominio propio, en *Settings → Pages → Custom domain* poner
+   `informe.cacharolo.es`. El fichero [`public/CNAME`](public/CNAME) ya lo
+   declara. En el panel de DNS de Hostalia:
 
-Ese identificador no es un secreto y va versionado a propósito: en el modelo de
-Workers manda el fichero de configuración, así que un binding añadido a mano
-desde el panel se perdería en el siguiente despliegue.
+   | Tipo | Nombre | Valor |
+   | --- | --- | --- |
+   | CNAME | `informe` | `edgarfigueirasmpc.github.io` |
 
-**2. Subir el cambio a GitHub** (`git push`).
-
-**3. Crear la aplicación.** En Cloudflare, *Compute (Workers) → Create →
-Import a repository*, y elegir el repositorio. Los comandos:
-
-| Campo | Valor |
-| --- | --- |
-| Build command | `npm run build` |
-| Deploy command | `npx wrangler deploy` |
-
-**4. Poner las contraseñas.** En el Worker, *Settings → Variables and Secrets*,
-añadirlas **como Secret** (no como texto plano):
-
-| Variable | Para qué |
-| --- | --- |
-| `VIEW_PASSWORD` | La que se reparte a los compañeros. |
-| `ADMIN_PASSWORD` | Opcional. Ver más abajo. |
-| `AUTH_SECRET` | Firma las cookies de sesión. No se comparte con nadie. |
-
-Para generar el secreto:
-
-```bash
-openssl rand -base64 32
-```
-
-Como la contraseña se reparte, que sea larga y no adivinable: es lo único que
-separa el informe de internet.
-
-Los secretos se enganchan en el despliegue, no en caliente: si se añaden después
-de la primera compilación, hay que **volver a desplegar** para que el Worker los
-vea.
-
-**5. El dominio.** En el Worker, *Settings → Domains & Routes → Add → Custom
-domain*, e introducir `informe.cacharolo.es`. Cloudflare dará un destino del
-tipo `informe.<subdominio>.workers.dev`. En el panel de DNS de Hostalia:
-
-| Tipo | Nombre | Valor |
-| --- | --- | --- |
-| CNAME | `informe` | el destino que indique Cloudflare |
-
-El certificado tarda unos minutos en emitirse.
-
-**6. Publicar el primer informe.** Entrar con la contraseña de administración y
-subir el PDF del día.
-
-## Quién puede entrar y quién puede publicar
-
-No hay usuarios ni cuentas. Al acertar la contraseña, el servidor devuelve una
-cookie firmada con HMAC-SHA256 que sólo contiene el rol y la fecha de
-caducidad (30 días); no se guarda ninguna sesión, la firma es lo que impide
-falsificarla.
-
-Hay dos modos, y los distingue si `ADMIN_PASSWORD` está puesta o no:
-
-**Con `ADMIN_PASSWORD`.** Dos contraseñas: la de consulta sólo deja mirar y
-simular, la de administración deja además publicar. Es la recomendable si el
-informe lo sube siempre la misma persona, porque nadie más puede pisarlo por
-error.
-
-**Sin `ADMIN_PASSWORD`** (déjala sin crear, o bórrala). Una única contraseña:
-quien la sabe entra y puede publicar. Más cómodo de repartir, a cambio de que
-cualquiera pueda sustituir el informe del día — y como sólo se guarda el último,
-no hay vuelta atrás.
-
-Cambiar de modo es añadir o quitar esa variable en Cloudflare; no hay que tocar
-código ni volver a desplegar.
-
-Simular cifras lo puede hacer cualquiera en los dos modos: los ajustes se
-quedan en el navegador de cada uno y no afectan a lo que ven los demás.
+4. Marcar *Enforce HTTPS* cuando GitHub termine de emitir el certificado.
 
 ## Estructura
 
 ```
 src/lib/parseReport.ts   Reconstruye las tablas del PDF a partir de coordenadas
-src/lib/pdf.ts           Carga pdf.js (perezosa: sólo al subir un informe)
+src/lib/pdf.ts           Carga pdf.js (perezosa: sólo al cargar un informe)
+src/lib/share.ts         Empaqueta el informe dentro de la URL
 src/lib/text.ts          Números en formato español y arreglo del mojibake
 src/lib/model.ts         Tipos y toda la aritmética de simulación
 src/components/          Interfaz
-worker/                  El Worker: enrutado, y la API bajo /api
-shared/                  Sesiones firmadas y acceso a KV
+scripts/extraer-logo.py  Recorta los logos del mockup y genera los iconos
 ```
 
-`pdfjs-dist` va en su propio fragmento y se descarga sólo al subir un PDF: quien
-únicamente consulta el informe se descarga poco más de 50 kB.
+`pdfjs-dist` va en su propio fragmento y se descarga sólo al cargar un PDF:
+quien abre un enlace que ya trae el informe no lo llega a pedir.
 
-## El logo y el color
+## Los logos
 
-El logo original (`logo-original.png`) viene montado sobre un mockup de
-pegatina, con fondo gris y halo blanco. En vez de redibujarlo, se recorta del
-propio fichero: fondo, halo y reborde son acromáticos y el dibujo no, así que
-basta con separarlos por saturación y las formas quedan intactas.
+- [`src/assets/logo.png`](src/assets/logo.png) — la marca de la cabecera.
+- [`src/assets/mpc.png`](src/assets/mpc.png) — la firma corporativa del pie.
+- `public/favicon-32.png`, `apple-touch-icon.png`, `icono.png` — iconos.
+
+Todos salen de los originales `logo-original.png` y `logo-sticker.png` con:
 
 ```bash
 python scripts/extraer-logo.py logo-original.png logo-sticker.png
 ```
-
-Eso regenera `public/logo.png` (cabecera), `favicon-32.png`, `apple-touch-icon.png`,
-`icono.png` y `mpc.png`. Si algún día cambia el logo, se sustituye el original y
-se vuelve a lanzar. Al no llevar blancos propios, el recorte se sostiene igual
-sobre fondo claro que oscuro.
-
-El segundo fichero es el monograma **MPC**, que aparece como firma corporativa al
-pie de la página y de la pantalla de acceso. A ése no se le aplica el recorte por
-saturación —su filo blanco forma parte del dibujo y separa las letras—, sólo se
-recorta y se escala. Para quitarlo, basta con eliminar `<FirmaMpc />` de
-[`src/App.tsx`](src/App.tsx) y [`src/components/Gate.tsx`](src/components/Gate.tsx).
-
-Los dos colores corporativos no son decorado, tienen significado y conviene
-respetarlo al tocar la interfaz:
-
-| Color | Significa |
-| --- | --- |
-| Azul `#2045b0` | Lo consolidado: total acumulado, cupo que se cubre |
-| Naranja `#ff4912` | Lo proyectado y lo simulado: estimaciones, ediciones, avisos |
-| Ámbar | Las columnas que se pueden escribir, y los estados intermedios |
-
-Están definidos como variables en [`src/styles.css`](src/styles.css).

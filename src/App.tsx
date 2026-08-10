@@ -1,70 +1,93 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApiError, getReport, getSession, logout, type Role } from './lib/api';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { computeView, EMPTY_OVERRIDES, type Overrides, type Report } from './lib/model';
-import { cacheReport, cachedReport, clearCache, loadOverrides, saveOverrides } from './lib/storage';
 import { fechaCorta, fechaHora } from './lib/format';
-import { Gate } from './components/Gate';
+import {
+  cargaDelFragmento,
+  codificar,
+  descodificar,
+  fragmentoConCarga,
+} from './lib/share';
 import { FirmaMpc, Mark } from './components/Mark';
 import { Summary } from './components/Summary';
 import { ClientsTable } from './components/ClientsTable';
-import { Publisher } from './components/Publisher';
+import { Loader } from './components/Loader';
 import { EditableNumber } from './components/EditableNumber';
+import { Compartir } from './components/Compartir';
 
-type Sesion = 'comprobando' | 'fuera' | Role;
+type Estado =
+  | { fase: 'leyendo-url' }
+  | { fase: 'vacio' }
+  | { fase: 'roto' }
+  | { fase: 'listo'; report: Report; overrides: Overrides };
 
 export default function App() {
-  const [sesion, setSesion] = useState<Sesion>('comprobando');
-  const [report, setReport] = useState<Report | null>(null);
-  const [overrides, setOverrides] = useState<Overrides>(EMPTY_OVERRIDES);
-  const [error, setError] = useState('');
-  const [cargando, setCargando] = useState(false);
+  const [estado, setEstado] = useState<Estado>({ fase: 'leyendo-url' });
 
-  // ¿Hay sesión abierta de un día anterior?
-  useEffect(() => {
-    getSession()
-      .then(({ role }) => setSesion(role ?? 'fuera'))
-      .catch(() => setSesion('fuera'));
+  // Lo último que hemos escrito nosotros en la barra de direcciones, para no
+  // volver a interpretar como enlace entrante lo que acabamos de generar.
+  const propio = useRef<string>('');
+
+  const escribirUrl = useCallback(async (report: Report, overrides: Overrides) => {
+    const fragmento = fragmentoConCarga(await codificar(report, overrides));
+    propio.current = fragmento;
+    history.replaceState(null, '', fragmento);
   }, []);
 
-  const aplicar = useCallback((nuevo: Report) => {
-    setReport(nuevo);
-    cacheReport(nuevo);
-    setOverrides(loadOverrides(nuevo));
-  }, []);
-
-  // Con sesión: se pinta al momento lo último que se vio y se refresca detrás.
+  // Al abrir la página, y cada vez que llega un enlace distinto.
   useEffect(() => {
-    if (sesion !== 'view' && sesion !== 'admin') return;
+    let vigente = true;
 
-    const local = cachedReport();
-    if (local) {
-      setReport(local);
-      setOverrides(loadOverrides(local));
+    async function leer() {
+      const carga = cargaDelFragmento(location.hash);
+      if (!carga) {
+        if (vigente) setEstado({ fase: 'vacio' });
+        return;
+      }
+
+      const compartido = await descodificar(carga);
+      if (!vigente) return;
+
+      setEstado(
+        compartido
+          ? { fase: 'listo', report: compartido.report, overrides: compartido.overrides }
+          : { fase: 'roto' },
+      );
     }
 
-    setCargando(true);
-    getReport()
-      .then(aplicar)
-      .catch((err: unknown) => {
-        if (err instanceof ApiError && err.status === 404) {
-          setReport(null);
-          clearCache();
-        } else if (!local) {
-          setError(err instanceof ApiError ? err.message : 'No se ha podido cargar el informe.');
-        }
-      })
-      .finally(() => setCargando(false));
-  }, [sesion, aplicar]);
+    void leer();
 
+    function alCambiarElHash() {
+      if (location.hash === propio.current) return;
+      void leer();
+    }
+
+    addEventListener('hashchange', alCambiarElHash);
+    return () => {
+      vigente = false;
+      removeEventListener('hashchange', alCambiarElHash);
+    };
+  }, []);
+
+  /** Un PDF recién leído sustituye a lo que hubiera. */
+  const cargar = useCallback(
+    (report: Report) => {
+      setEstado({ fase: 'listo', report, overrides: EMPTY_OVERRIDES });
+      void escribirUrl(report, EMPTY_OVERRIDES);
+    },
+    [escribirUrl],
+  );
+
+  /** Toda simulación se refleja en la URL: el enlace siempre es lo que se ve. */
   const cambiarOverrides = useCallback(
     (fn: (previo: Overrides) => Overrides) => {
-      setOverrides((previo) => {
-        const siguiente = fn(previo);
-        if (report) saveOverrides(report, siguiente);
-        return siguiente;
+      setEstado((previo) => {
+        if (previo.fase !== 'listo') return previo;
+        const overrides = fn(previo.overrides);
+        void escribirUrl(previo.report, overrides);
+        return { ...previo, overrides };
       });
     },
-    [report],
+    [escribirUrl],
   );
 
   const setMedia = useCallback(
@@ -79,20 +102,23 @@ export default function App() {
     [cambiarOverrides],
   );
 
+  const cerrar = useCallback(() => {
+    propio.current = '';
+    history.replaceState(null, '', location.pathname + location.search);
+    setEstado({ fase: 'vacio' });
+  }, []);
+
   const view = useMemo(
-    () => (report ? computeView(report, overrides) : null),
-    [report, overrides],
+    () => (estado.fase === 'listo' ? computeView(estado.report, estado.overrides) : null),
+    [estado],
   );
 
-  if (sesion === 'comprobando') {
-    return <div className="cargando">Comprobando el acceso…</div>;
+  if (estado.fase === 'leyendo-url') {
+    return <div className="cargando">Abriendo el informe…</div>;
   }
 
-  if (sesion === 'fuera') {
-    return <Gate onEnter={setSesion} />;
-  }
-
-  const esAdmin = sesion === 'admin';
+  const report = estado.fase === 'listo' ? estado.report : null;
+  const overrides = estado.fase === 'listo' ? estado.overrides : EMPTY_OVERRIDES;
 
   return (
     <div className="shell">
@@ -102,43 +128,34 @@ export default function App() {
           Informe de toneladas
         </h1>
         <div className="masthead__meta no-imprimir">
-          {report && <span>Actualizado el {fechaHora(report.publishedAt)}</span>}
-          {esAdmin && <span className="eyebrow distintivo">Puedes publicar</span>}
-          <button
-            className="linkish"
-            type="button"
-            onClick={() => {
-              clearCache();
-              void logout().finally(() => {
-                setReport(null);
-                setOverrides(EMPTY_OVERRIDES);
-                setSesion('fuera');
-              });
-            }}
-          >
-            Salir
-          </button>
+          {report && <span>Generado el {fechaHora(report.publishedAt)}</span>}
+          {report && (
+            <button className="linkish" type="button" onClick={cerrar}>
+              Cerrar
+            </button>
+          )}
         </div>
       </header>
 
-      {error && !report && (
-        <div className="aviso" role="alert">
-          {error}
-        </div>
-      )}
-
-      {!report && !cargando && !error && (
+      {estado.fase === 'roto' && (
         <div className="vacio">
-          <p className="vacio__titulo">Todavía no hay ningún informe publicado</p>
+          <p className="vacio__titulo">Este enlace no se puede leer</p>
           <p>
-            {esAdmin
-              ? 'Sube el PDF del día para que lo vea todo el mundo.'
-              : 'En cuanto se suba el PDF del día aparecerá aquí.'}
+            Puede que se haya cortado al copiarlo o al enviarlo por mensajería. Pide que te lo
+            reenvíen entero, o carga tú el PDF aquí abajo.
           </p>
         </div>
       )}
 
-      {!report && cargando && <div className="cargando">Cargando el informe…</div>}
+      {estado.fase === 'vacio' && (
+        <div className="vacio">
+          <p className="vacio__titulo">Carga el PDF del día</p>
+          <p>
+            Se lee aquí mismo, en tu navegador. El informe queda dentro del enlace, así que para
+            enviárselo a alguien basta con pasarle la dirección.
+          </p>
+        </div>
+      )}
 
       {report && view && (
         <>
@@ -191,6 +208,8 @@ export default function App() {
 
           <ClientsTable view={view} onSetMedia={setMedia} />
 
+          <Compartir simulando={view.summary.editado} />
+
           <div className="notas">
             <p className="notas__titulo eyebrow">Cómo se calcula</p>
             <p>
@@ -214,9 +233,7 @@ export default function App() {
         </>
       )}
 
-      {/* Fuera del bloque anterior a propósito: el día que se despliega esto
-          todavía no hay informe, y es justo cuando hace falta poder subirlo. */}
-      {esAdmin && !cargando && <Publisher onPublished={aplicar} />}
+      <Loader onLoaded={cargar} conInforme={report !== null} />
 
       <FirmaMpc />
     </div>
