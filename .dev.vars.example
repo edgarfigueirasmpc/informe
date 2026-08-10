@@ -1,0 +1,11 @@
+# Copia este fichero a .dev.vars para las pruebas en local.
+# En producción estos tres valores se cargan como secretos en Cloudflare Pages.
+# .dev.vars está en .gitignore: nunca subas las contraseñas al repositorio.
+
+VIEW_PASSWORD=consulta-en-local
+AUTH_SECRET=una-cadena-larga-y-aleatoria-solo-para-desarrollo
+
+# Opcional. Con ella, VIEW_PASSWORD sólo deja consultar y ésta deja publicar.
+# Comentada o sin poner, la app funciona con una única contraseña y quien entra
+# puede publicar.
+ADMIN_PASSWORD=publico-en-local

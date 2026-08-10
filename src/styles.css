@@ -1,0 +1,1054 @@
+/* =========================================================================
+   Informe de toneladas — hoja de estilo
+
+   Sigue siendo papel, tinta y líneas finas, pero con el color del logo
+   haciendo trabajo de lectura, no de adorno:
+
+     azul    → lo consolidado, lo que ya ha pasado (pino, total acumulado)
+     naranja → lo proyectado y lo simulado (estimaciones, ediciones, avisos)
+     madera  → acentos cálidos y estados intermedios
+
+   Y con algo de relieve —superficies, radios pequeños, sombras muy suaves—
+   para que la jerarquía se vea de un vistazo sin recurrir a más tinta.
+   ========================================================================= */
+
+:root {
+  --naranja: #ff4912;
+  --azul: #2045b0;
+  --madera: #c98a2e;
+
+  --paper: #f4f3ef;
+  --paper-hondo: #eeece6;
+  --surface: #fcfbf8;
+  --ink: #16150f;
+  --ink-soft: #6a665c;
+  --ink-faint: #9a958a;
+  --line: rgba(22, 21, 15, 0.13);
+  --line-strong: rgba(22, 21, 15, 0.38);
+
+  --accent: var(--naranja);
+  --accent-soft: rgba(255, 73, 18, 0.07);
+  --azul-soft: rgba(32, 69, 176, 0.07);
+
+  --pino: var(--naranja);
+  --eucalipto: var(--azul);
+  --otras: var(--madera);
+
+  --gap: clamp(1.5rem, 4vw, 3.5rem);
+  --rule: 1px;
+  --radio: 4px;
+
+  --sombra: 0 1px 1px rgba(22, 21, 15, 0.04), 0 10px 28px -18px rgba(22, 21, 15, 0.5);
+  --sombra-alta: 0 1px 2px rgba(22, 21, 15, 0.06), 0 18px 40px -24px rgba(22, 21, 15, 0.55);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --naranja: #ff5c2b;
+    --azul: #7b9aec;
+    --madera: #d9ae5f;
+
+    --paper: #131311;
+    --paper-hondo: #0e0e0c;
+    --surface: #1b1b18;
+    --ink: #eceae2;
+    --ink-soft: #97938a;
+    --ink-faint: #6d6a62;
+    --line: rgba(236, 234, 226, 0.15);
+    --line-strong: rgba(236, 234, 226, 0.42);
+
+    --accent-soft: rgba(255, 92, 43, 0.1);
+    --azul-soft: rgba(123, 154, 236, 0.1);
+
+    --sombra: 0 1px 1px rgba(0, 0, 0, 0.4), 0 10px 28px -18px rgba(0, 0, 0, 0.9);
+    --sombra-alta: 0 1px 2px rgba(0, 0, 0, 0.5), 0 18px 40px -24px rgba(0, 0, 0, 1);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: linear-gradient(180deg, var(--paper) 0%, var(--paper) 46rem, var(--paper-hondo) 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: ui-sans-serif, -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  font-feature-settings: 'tnum' 1, 'cv05' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Filete corporativo: lo primero que se ve al abrir, y lo único que cruza la
+   pantalla de lado a lado. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--naranja) 0%, var(--naranja) 38%, var(--azul) 100%);
+  z-index: 20;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* --- Tipografía de servicio ---------------------------------------------- */
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* --- Armazón -------------------------------------------------------------- */
+
+.shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--gap) 6rem;
+}
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding: clamp(1.75rem, 4vw, 2.75rem) 0 1.25rem;
+  border-bottom: var(--rule) solid var(--line-strong);
+}
+
+.masthead__title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.marca {
+  display: block;
+  width: auto;
+  height: 34px;
+  flex: none;
+}
+
+.masthead__meta {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.distintivo {
+  padding: 0.2rem 0.5rem;
+  border: var(--rule) solid color-mix(in srgb, var(--naranja) 40%, transparent);
+  border-radius: 2px;
+  background: var(--accent-soft);
+  color: var(--naranja);
+  white-space: nowrap;
+}
+
+/* En móvil no cabe sin partirse en dos líneas, y tampoco hace falta: el panel
+   de publicación ya está abajo para quien puede usarlo. */
+@media (max-width: 640px) {
+  .distintivo {
+    display: none;
+  }
+}
+
+.linkish {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-bottom: var(--rule) solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.linkish:hover {
+  color: var(--naranja);
+  border-bottom-color: currentColor;
+}
+
+/* --- Periodo -------------------------------------------------------------- */
+
+.periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem 2rem;
+  padding: 1.5rem 0 1.75rem;
+}
+
+.periodo__rango {
+  font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.periodo__dias {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* --- Resumen superior ------------------------------------------------------ */
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--surface);
+  border: var(--rule) solid var(--line);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+}
+
+.resumen__celda {
+  position: relative;
+  padding: 1.5rem 1.75rem 1.6rem;
+  border-left: var(--rule) solid var(--line);
+  min-width: 0;
+}
+
+/* Cada bloque lleva su color arriba: azul lo real, naranja lo proyectado. */
+.resumen__celda::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--color-bloque, transparent);
+}
+
+.resumen__celda:first-child {
+  border-left: 0;
+}
+
+.resumen__celda--real {
+  --color-bloque: var(--azul);
+}
+
+/* El ritmo es la bisagra entre lo consolidado y lo proyectado, y su filete lo
+   dice: va del azul al naranja. Además libera al ámbar, que en la tabla
+   significa "esto se puede editar". */
+.resumen__celda--ritmo {
+  --color-bloque: linear-gradient(90deg, var(--azul), var(--naranja));
+}
+
+.resumen__celda--proyeccion {
+  --color-bloque: var(--naranja);
+  background: var(--accent-soft);
+}
+
+.resumen__valor {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+  font-size: clamp(1.9rem, 5vw, 2.9rem);
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.resumen__unidad {
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+.resumen__pie {
+  margin-top: 0.7rem;
+  font-size: 12px;
+  color: var(--ink-soft);
+  min-height: 1.2em;
+}
+
+.resumen__delta {
+  color: var(--naranja);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.resumen__tachado {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: var(--rule);
+}
+
+/* La misma magnitud sumando clientes, enfrentada a la del informe. Va callada:
+   es un contraste, no un segundo titular. */
+.contraste {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.6rem;
+  border-top: var(--rule) solid var(--line);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.contraste__fuente {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.contraste__cifras {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.contraste__dif {
+  color: var(--ink-faint);
+}
+
+.contraste__dif--cuadra {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--azul);
+}
+
+.eyebrow__fuente {
+  color: var(--ink-faint);
+  opacity: 0.75;
+}
+
+/* --- Barra de simulación --------------------------------------------------- */
+
+.simbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem 0 0.9rem;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.simbar__campo {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.simbar__caja {
+  display: block;
+  width: 3.75rem;
+}
+
+.simbar__caja .editable {
+  padding: 0.35rem 0.5rem;
+  border: var(--rule) solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.simbar__caja .editable:focus,
+.simbar__caja .editable--activo {
+  border-color: var(--naranja);
+}
+
+.simbar__caja .editable--activo {
+  color: var(--naranja);
+}
+
+.simbar__aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--naranja);
+  font-weight: 500;
+}
+
+.simbar__aviso::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--naranja);
+}
+
+.simbar__espacio {
+  margin-left: auto;
+}
+
+/* --- Tabla ----------------------------------------------------------------- */
+
+.tabla-envoltorio {
+  overflow-x: auto;
+  margin-top: 1rem;
+  background: var(--surface);
+  border: var(--rule) solid var(--line);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.7rem 0.85rem;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: var(--rule) solid var(--line);
+}
+
+.tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 1.1rem;
+  padding-bottom: 0.65rem;
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: var(--rule) solid var(--line-strong);
+  vertical-align: bottom;
+}
+
+.tabla th:first-child,
+.tabla td:first-child {
+  text-align: left;
+  padding-left: 1.25rem;
+  white-space: normal;
+  min-width: 14rem;
+}
+
+.tabla th:last-child,
+.tabla td:last-child {
+  padding-right: 1.25rem;
+}
+
+.tabla tbody tr {
+  transition: background 0.12s;
+}
+
+.tabla tbody tr:hover {
+  background: color-mix(in srgb, var(--madera) 7%, transparent);
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla tfoot td {
+  padding-top: 0.9rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 0;
+  border-top: var(--rule) solid var(--line-strong);
+  font-weight: 500;
+  background: color-mix(in srgb, var(--ink) 2.5%, transparent);
+}
+
+/* Marca de fila simulada: el naranja al canto es lo que la distingue de un
+   vistazo entre veinte filas. */
+.fila--editada {
+  background: var(--accent-soft) !important;
+}
+
+.fila--editada td:first-child {
+  box-shadow: inset 3px 0 0 var(--naranja);
+}
+
+.cliente__nombre {
+  display: block;
+}
+
+.cliente__pie {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 11px;
+  color: var(--naranja);
+}
+
+/* Reparto: raíl de largo fijo y relleno proporcional al mayor cliente. El raíl
+   es lo que hace que las filas se puedan comparar entre sí de un vistazo; sin
+   él, los clientes pequeños quedaban en una rayita suelta que parecía un error
+   de pintado. */
+.barra {
+  display: block;
+  width: 11rem;
+  max-width: 100%;
+  height: 4px;
+  margin-top: 0.45rem;
+  border-radius: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.barra__relleno {
+  display: flex;
+  height: 100%;
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 2px;
+}
+
+.barra__seg--pino {
+  background: var(--pino);
+}
+
+.barra__seg--eucalipto {
+  background: var(--eucalipto);
+}
+
+.barra__seg--otras {
+  background: var(--otras);
+}
+
+/* Punto de color junto a la cabecera de cada especie. */
+.punto-especie {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.punto-especie--pino {
+  background: var(--pino);
+}
+
+.punto-especie--eucalipto {
+  background: var(--eucalipto);
+}
+
+.punto-especie--otras {
+  background: var(--otras);
+}
+
+.celda--suave {
+  color: var(--ink-soft);
+}
+
+.celda--nula {
+  color: var(--ink-faint);
+}
+
+.celda--fuerte {
+  font-weight: 500;
+}
+
+/* Las dos columnas simulables van sobre una banda cálida continua. Antes
+   llevaban un punteado por casilla, pero en las filas de una sola línea caía
+   justo encima de la línea separadora y desaparecía: la banda se ve siempre y
+   además señala la zona editable como bloque, no casilla a casilla. */
+.celda--editable {
+  padding: 0 !important;
+  background: color-mix(in srgb, var(--madera) 7%, transparent);
+}
+
+.tabla thead th.col--editable,
+.tabla tfoot td.col--editable {
+  background: color-mix(in srgb, var(--madera) 7%, transparent);
+}
+
+.tabla thead th.col--editable {
+  color: var(--madera);
+}
+
+/* --- Casilla editable ------------------------------------------------------ */
+
+.editable {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 0;
+  background: transparent;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  cursor: text;
+  border-radius: 2px;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.editable:hover {
+  background: color-mix(in srgb, var(--naranja) 9%, transparent);
+}
+
+.editable:focus {
+  outline: 0;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--naranja);
+}
+
+.editable--activo {
+  color: var(--naranja);
+  font-weight: 500;
+}
+
+.editable--invalido {
+  border-bottom-color: var(--naranja);
+  color: var(--naranja);
+}
+
+td:last-child .editable {
+  padding-right: 1.25rem;
+}
+
+/* --- Estado del cupo -------------------------------------------------------- */
+
+.cupo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.cupo__punto {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  transform: translateY(-1px);
+}
+
+.cupo--holgado .cupo__punto { background: var(--azul); }
+.cupo--justo .cupo__punto { background: var(--madera); }
+.cupo--corto .cupo__punto { background: var(--naranja); }
+
+.cupo--justo { color: var(--madera); }
+.cupo--corto { color: var(--naranja); font-weight: 500; }
+
+/* --- Pie y notas ------------------------------------------------------------ */
+
+.notas {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: var(--rule) solid var(--line);
+  display: grid;
+  gap: 0.5rem;
+  font-size: 12px;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+.notas__titulo {
+  margin-bottom: 0.25rem;
+}
+
+.aviso {
+  margin-top: 1.5rem;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--naranja);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  background: var(--accent-soft);
+  font-size: 13px;
+}
+
+/* --- Firma corporativa ------------------------------------------------------- */
+
+.firma {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: var(--rule) solid var(--line);
+  opacity: 0.75;
+}
+
+.firma__marca {
+  display: block;
+  width: auto;
+  height: 26px;
+  flex: none;
+}
+
+.acceso .firma {
+  margin-top: 2rem;
+  justify-content: center;
+}
+
+/* --- Botones ---------------------------------------------------------------- */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.4rem;
+  border: var(--rule) solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--naranja);
+  color: #fff;
+  border-color: var(--naranja);
+  box-shadow: var(--sombra);
+}
+
+.boton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.boton--primario {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* --- Publicación ------------------------------------------------------------ */
+
+.publicar {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: var(--rule) solid var(--line-strong);
+}
+
+.zona {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+  padding: 2.5rem 1.5rem;
+  border: var(--rule) dashed var(--line-strong);
+  border-radius: var(--radio);
+  background: var(--surface);
+  text-align: center;
+  color: var(--ink-soft);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.zona--activa {
+  border-color: var(--naranja);
+  border-style: solid;
+  background: var(--accent-soft);
+  color: var(--ink);
+  box-shadow: var(--sombra-alta);
+}
+
+.zona__pista {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+/* --- Pantalla de acceso ------------------------------------------------------ */
+
+.acceso {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--gap);
+}
+
+.acceso__caja {
+  width: min(28rem, 100%);
+  padding: clamp(1.75rem, 5vw, 2.75rem);
+  background: var(--surface);
+  border: var(--rule) solid var(--line);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-alta);
+}
+
+.acceso__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding-bottom: 1.25rem;
+  border-bottom: var(--rule) solid var(--line-strong);
+}
+
+.acceso__marca .marca {
+  height: 52px;
+}
+
+.acceso__titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.acceso__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1.75rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.campo__input {
+  width: 100%;
+  padding: 0.75rem 0;
+  border: 0;
+  border-bottom: var(--rule) solid var(--line-strong);
+  background: transparent;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+
+.campo__input:focus {
+  outline: 0;
+  border-bottom-color: var(--naranja);
+}
+
+.error {
+  color: var(--naranja);
+  font-size: 12px;
+  min-height: 1.2em;
+}
+
+/* --- Estados vacíos ---------------------------------------------------------- */
+
+.vacio {
+  padding: 4.5rem 0;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.vacio__titulo {
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  font-weight: 300;
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+
+.cargando {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  color: var(--ink-faint);
+}
+
+/* --- Móvil: la tabla se convierte en fichas ---------------------------------- */
+
+@media (max-width: 860px) {
+  .resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .resumen__celda {
+    border-left: 0;
+    border-top: var(--rule) solid var(--line);
+    padding: 1.25rem 1.25rem 1.1rem;
+  }
+
+  .resumen__celda:first-child {
+    border-top: 0;
+  }
+
+  .simbar__campo {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .simbar__espacio {
+    margin-left: 0;
+  }
+
+  .tabla-envoltorio {
+    overflow-x: visible;
+  }
+
+  .tabla,
+  .tabla tbody,
+  .tabla tfoot,
+  .tabla tr,
+  .tabla td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla thead {
+    display: none;
+  }
+
+  .tabla tbody tr {
+    padding: 1rem 1.1rem;
+    border-bottom: var(--rule) solid var(--line);
+  }
+
+  .tabla tbody td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3rem 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .tabla tbody td::before {
+    content: attr(data-etiqueta);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: left;
+  }
+
+  .tabla tbody td:first-child {
+    display: block;
+    min-width: 0;
+    padding: 0 0 0.6rem;
+    font-weight: 500;
+  }
+
+  .tabla tbody td:first-child::before {
+    content: none;
+  }
+
+  .barra {
+    max-width: none;
+  }
+
+  .fila--editada td:first-child {
+    box-shadow: none;
+  }
+
+  .fila--editada {
+    box-shadow: inset 3px 0 0 var(--naranja);
+  }
+
+  .celda--editable {
+    padding: 0.3rem 0 !important;
+  }
+
+  .tabla .editable {
+    width: auto;
+    flex: 1;
+    padding: 0.2rem 0;
+  }
+
+  td:last-child .editable {
+    padding-right: 0;
+  }
+
+  .tabla tfoot td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 1.1rem;
+    border-top: 0;
+  }
+
+  .tabla tfoot tr {
+    display: block;
+    padding: 0.9rem 0;
+    border-top: var(--rule) solid var(--line-strong);
+  }
+
+  .tabla tfoot td::before {
+    content: attr(data-etiqueta);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+}
+
+/* --- Impresión ---------------------------------------------------------------- */
+
+@media print {
+  :root {
+    --paper: #fff;
+    --paper-hondo: #fff;
+    --surface: #fff;
+    --ink: #000;
+    --ink-soft: #444;
+    --ink-faint: #666;
+    --line: rgba(0, 0, 0, 0.25);
+    --line-strong: rgba(0, 0, 0, 0.7);
+    --accent-soft: transparent;
+    --sombra: none;
+    --sombra-alta: none;
+  }
+
+  body::before,
+  .no-imprimir,
+  .publicar,
+  .simbar {
+    display: none !important;
+  }
+
+  .shell {
+    max-width: none;
+    padding: 0;
+  }
+
+  .tabla-envoltorio,
+  .resumen {
+    border: var(--rule) solid var(--line-strong);
+    box-shadow: none;
+  }
+
+  .tabla thead th {
+    position: static;
+  }
+
+  .tabla {
+    font-size: 10pt;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

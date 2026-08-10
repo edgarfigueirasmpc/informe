@@ -1,0 +1,18 @@
+# Referencia de la configuración que hay que dejar montada en Cloudflare Pages.
+#
+# NO renombrar a wrangler.toml sin poner el id real del namespace de KV:
+# Pages da prioridad a este fichero sobre lo configurado en el panel, y un id
+# inventado hace fallar el despliegue. La configuración de verdad se hace desde
+# el panel (Settings → Bindings y Settings → Variables and Secrets).
+#
+# Las contraseñas nunca van aquí: son secretos en Cloudflare, y en local se
+# leen de .dev.vars.
+
+name = "informe-cacharolo"
+compatibility_date = "2026-08-01"
+pages_build_output_dir = "dist"
+
+# Un único registro, que se sobreescribe con cada informe publicado.
+[[kv_namespaces]]
+binding = "INFORME"
+id = "<id-del-namespace-de-kv>"
