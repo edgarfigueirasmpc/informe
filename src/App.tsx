@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { computeView, EMPTY_OVERRIDES, type Overrides, type Report } from './lib/model';
+import {
+  computeView,
+  EMPTY_OVERRIDES,
+  ordenarClientes,
+  ORDEN_POR_DEFECTO,
+  type CampoOrden,
+  type Orden,
+  type Overrides,
+  type Report,
+  type Species,
+} from './lib/model';
 import { fechaCorta, fechaHora } from './lib/format';
 import {
   cargaDelFragmento,
@@ -13,6 +23,7 @@ import { ClientsTable } from './components/ClientsTable';
 import { Loader } from './components/Loader';
 import { EditableNumber } from './components/EditableNumber';
 import { Compartir } from './components/Compartir';
+import { Grafica } from './components/Grafica';
 
 type Estado =
   | { fase: 'leyendo-url' }
@@ -121,6 +132,31 @@ export default function App() {
     [estado],
   );
 
+  // El orden vive aquí para que la tabla y la gráfica enseñen siempre lo mismo:
+  // se ordena pulsando una cabecera y las dos se reordenan a la vez.
+  const [orden, setOrden] = useState<Orden>(ORDEN_POR_DEFECTO);
+
+  const cambiarOrden = useCallback((campo: CampoOrden) => {
+    setOrden((previo) =>
+      previo.campo === campo
+        ? { campo, desc: !previo.desc }
+        : // Al estrenar columna: los nombres de la A a la Z, las cifras de
+          // mayor a menor, que es lo que se espera de cada una.
+          { campo, desc: campo !== 'nombre' },
+    );
+  }, []);
+
+  const clientes = useMemo(
+    () => (view ? ordenarClientes(view.clients, orden) : []),
+    [view, orden],
+  );
+
+  const columnas = useMemo<Species[]>(() => {
+    const cols: Species[] = ['pino', 'eucalipto'];
+    if (view?.speciesEnUso.includes('otras')) cols.push('otras');
+    return cols;
+  }, [view]);
+
   if (estado.fase === 'leyendo-url') {
     return <div className="cargando">Abriendo el informe…</div>;
   }
@@ -214,7 +250,20 @@ export default function App() {
             )}
           </div>
 
-          <ClientsTable view={view} onSetMedia={setMedia} />
+          <Grafica
+            clientes={clientes}
+            columnas={columnas}
+            diasTrabajados={view.summary.diasTrabajados}
+            diasRestantes={view.summary.diasRestantes}
+          />
+
+          <ClientsTable
+            view={view}
+            clientes={clientes}
+            orden={orden}
+            onOrden={cambiarOrden}
+            onSetMedia={setMedia}
+          />
 
           <Compartir enlace={enlace} simulando={view.summary.editado} />
 

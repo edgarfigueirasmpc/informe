@@ -150,9 +150,33 @@ describe('cálculo y simulación', () => {
     expect(sim.summary.estimacion).toBeCloseTo(736.51 * 21 + subida, 0);
     expect(sim.summary.estimacionClientes).toBeCloseTo((3872.54 / 5) * 21 + subida, 0);
 
-    // El acumulado real es historia: no lo mueve ninguna simulación.
+    // El total que firma la cabecera del PDF no lo toca nadie.
     expect(sim.summary.totalMes).toBe(3682.54);
-    expect(sim.summary.sumaClientes).toBe(3872.54);
+  });
+
+  it('aplica la media simulada también a los días ya trabajados', () => {
+    // Es la aritmética del papel: la estimación de Finsa a 180 TN/día era
+    // 180 × 21 días, no 300 acumuladas + 180 × los 16 que faltan. Si la
+    // estimación cuenta el mes entero, el acumulado tiene que ir en consecuencia.
+    const finsa = report.clients.find((c) => c.name.startsWith('FINSA'))!;
+    const sim = computeView(report, { clients: { [finsa.name]: 180 } });
+    const simFinsa = sim.clients.find((c) => c.name.startsWith('FINSA'))!;
+
+    expect(simFinsa.totalBase).toBe(300.68);
+    expect(simFinsa.total).toBeCloseTo(180 * 5, 6);
+    expect(simFinsa.estimacion).toBeCloseTo(180 * 21, 6);
+
+    // Y la suma de clientes recoge esa diferencia.
+    const base = computeView(report, EMPTY_OVERRIDES);
+    expect(sim.summary.sumaClientes - base.summary.sumaClientes).toBeCloseTo(180 * 5 - 300.68, 6);
+  });
+
+  it('sin simular, el acumulado en uso es exactamente el del PDF', () => {
+    const view = computeView(report, EMPTY_OVERRIDES);
+    for (const c of view.clients) {
+      expect(c.total).toBeCloseTo(c.totalBase, 6);
+    }
+    expect(view.summary.sumaClientes).toBeCloseTo(3872.54, 2);
   });
 
   it('reacciona al cambio de días laborables restantes', () => {

@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { LARGO_INCOMODO } from '../lib/share';
+import {
+  IconoCompartir,
+  IconoCopiar,
+  IconoCorreo,
+  IconoHecho,
+  IconoWhatsApp,
+} from './Iconos';
 
 interface Props {
   /**
@@ -112,35 +119,49 @@ export function Compartir({ enlace, simulando }: Props) {
         )}
       </div>
 
+      {/* Los atajos van sólo con icono y su etiqueta accesible: son secundarios
+          y así caben en una línea hasta en un móvil. El de copiar conserva el
+          texto, que es la acción principal y además cambia de estado. */}
       <div className="compartir__acciones">
         {puedeEnviar ? (
           // Móviles y Safari: el diálogo del sistema, que ya conoce WhatsApp,
           // el correo y todo lo que haya instalado.
-          <button className="boton" type="button" onClick={() => void enviar()}>
-            Compartir
+          <button
+            className="boton boton--icono"
+            type="button"
+            onClick={() => void enviar()}
+            title="Compartir"
+            aria-label="Compartir"
+          >
+            <IconoCompartir />
           </button>
         ) : (
           // En escritorio no hay diálogo del sistema, así que se ofrecen a mano
           // las dos vías por las que esto se manda de verdad.
           <>
             <a
-              className="boton"
+              className="boton boton--icono"
               href={`https://wa.me/?text=${encodeURIComponent(cuerpo)}`}
               target="_blank"
               rel="noreferrer"
+              title="Enviar por WhatsApp"
+              aria-label="Enviar por WhatsApp"
             >
-              WhatsApp
+              <IconoWhatsApp />
             </a>
             <a
-              className="boton"
+              className="boton boton--icono"
               href={`mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`}
+              title="Enviar por correo"
+              aria-label="Enviar por correo"
             >
-              Correo
+              <IconoCorreo />
             </a>
           </>
         )}
 
         <button className="boton boton--primario" type="button" onClick={() => void copiar()}>
+          {resultado === 'copiado' ? <IconoHecho /> : <IconoCopiar />}
           {resultado === 'copiado' ? 'Copiado' : 'Copiar enlace'}
         </button>
       </div>

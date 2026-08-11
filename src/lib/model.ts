@@ -72,8 +72,19 @@ export const EMPTY_OVERRIDES: Overrides = { clients: {} };
 
 export interface ClientView {
   name: string;
+  /** Desglose por especie tal cual viene del PDF. No se simula. */
   tn: Record<Species, number>;
-  /** Suma de las tres especies. */
+  /** Suma de las tres especies: el acumulado que imprime el informe. */
+  totalBase: number;
+  /**
+   * Acumulado en uso: media en uso × días trabajados. Coincide con `totalBase`
+   * mientras no se simule.
+   *
+   * Que el acumulado se mueva al simular no es un descuido, es la aritmética
+   * del informe en papel: allí la estimación de Finsa a 180 TN/día era
+   * 180 × 21 = 3.780, los 21 días del mes y no sólo los que faltan. Es decir,
+   * la media simulada se aplica también a los días ya trabajados.
+   */
   total: number;
   /** TN/día reales según el acumulado del PDF. */
   mediaBase: number;
@@ -142,8 +153,8 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
   const diasTotales = diasTrabajados + diasRestantes;
 
   const clients: ClientView[] = report.clients.map((c) => {
-    const total = clientTotal(c);
-    const mediaBase = total / diasTrabajados;
+    const totalBase = clientTotal(c);
+    const mediaBase = totalBase / diasTrabajados;
     const override = overrides.clients[c.name];
     const media = override !== undefined && Number.isFinite(override) ? override : mediaBase;
     const estimacionBase = mediaBase * diasTotales;
@@ -152,7 +163,8 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
     return {
       name: c.name,
       tn: c.tn,
-      total: round2(total),
+      totalBase: round2(totalBase),
+      total: media * diasTrabajados,
       mediaBase,
       media,
       estimacionBase,
@@ -192,16 +204,75 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
       diasTotales,
       editado: clients.some((c) => c.editado) || overrides.diasRestantes !== undefined,
 
-      // El acumulado es historia y no se mueve; la media y la estimación
-      // sumadas sí reaccionan a las simulaciones, igual que las de la cabecera.
-      sumaClientes: round2(report.clients.reduce((acc, c) => acc + clientTotal(c), 0)),
+      // Las tres reaccionan a las simulaciones, porque la media simulada se
+      // aplica a todo el mes, también a los días ya trabajados.
+      // Redondeado porque ya no es una suma directa sino una recomposición
+      // (media × días), y eso arrastra error de coma flotante: sin esto salen
+      // 3872.5399999999995 donde el informe dice 3872,54.
+      sumaClientes: round2(clients.reduce((acc, c) => acc + c.total, 0)),
       mediaClientes: clients.reduce((acc, c) => acc + c.media, 0),
       estimacionClientes: clients.reduce((acc, c) => acc + c.estimacion, 0),
     },
-    // Pino primero, y dentro por volumen descendente: lo que más pesa, arriba.
-    clients: clients.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'es')),
+    // Orden de partida: lo que más pesa, arriba. La tabla puede cambiarlo.
+    clients: ordenarClientes(clients, ORDEN_POR_DEFECTO),
     speciesEnUso: speciesEnUso.length ? speciesEnUso : ['pino'],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Ordenación
+// ---------------------------------------------------------------------------
+
+export type CampoOrden = 'nombre' | Species | 'total' | 'media' | 'estimacion' | 'cupo';
+
+export interface Orden {
+  campo: CampoOrden;
+  /** De mayor a menor. Es lo que se quiere casi siempre con toneladas. */
+  desc: boolean;
+}
+
+export const ORDEN_POR_DEFECTO: Orden = { campo: 'total', desc: true };
+
+function valorDe(c: ClientView, campo: CampoOrden): number | null {
+  switch (campo) {
+    case 'nombre':
+      return null;
+    case 'total':
+      return c.total;
+    case 'media':
+      return c.media;
+    case 'estimacion':
+      return c.estimacion;
+    case 'cupo':
+      return c.cupoPendiente;
+    default:
+      return c.tn[campo] || 0;
+  }
+}
+
+/**
+ * Ordena sin tocar el original. Los clientes sin cupo van siempre al final,
+ * suba o baje la columna: un hueco no es ni mucho ni poco, y mezclarlo con los
+ * ceros haría creer que tienen cupo agotado.
+ */
+export function ordenarClientes(clients: ClientView[], orden: Orden): ClientView[] {
+  const signo = orden.desc ? -1 : 1;
+
+  return [...clients].sort((a, b) => {
+    if (orden.campo === 'nombre') {
+      return signo * a.name.localeCompare(b.name, 'es');
+    }
+
+    const va = valorDe(a, orden.campo);
+    const vb = valorDe(b, orden.campo);
+
+    if (va === null && vb === null) return a.name.localeCompare(b.name, 'es');
+    if (va === null) return 1;
+    if (vb === null) return -1;
+
+    // A igualdad de cifra, alfabético: así el orden no baila entre repintados.
+    return signo * (va - vb) || a.name.localeCompare(b.name, 'es');
+  });
 }
 
 /**

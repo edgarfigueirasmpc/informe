@@ -1,10 +1,14 @@
-import type { ClientView, ReportView, Species } from '../lib/model';
+import type { CampoOrden, ClientView, Orden, ReportView, Species } from '../lib/model';
 import { cupoStatus, SPECIES_LABEL } from '../lib/model';
 import { porcentaje, tn, tnRedondo } from '../lib/format';
 import { EditableNumber } from './EditableNumber';
 
 interface Props {
   view: ReportView;
+  /** Ya ordenados: el orden lo gobierna App, que lo comparte con la gráfica. */
+  clientes: ClientView[];
+  orden: Orden;
+  onOrden: (campo: CampoOrden) => void;
   onSetMedia: (client: string, media: number | null) => void;
 }
 
@@ -15,44 +19,59 @@ const ETIQUETA_CUPO: Record<ReturnType<typeof cupoStatus>, string> = {
   corto: 'No llega',
 };
 
-export function ClientsTable({ view, onSetMedia }: Props) {
-  const { clients, summary } = view;
+export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Props) {
+  const { summary } = view;
   // Pino y eucalipto siempre; "otras" sólo cuando el informe trae algo.
   const columnas: Species[] = ['pino', 'eucalipto'];
   if (view.speciesEnUso.includes('otras')) columnas.push('otras');
 
-  const hayCupos = clients.some((c) => c.cupoPendiente !== null);
-  // La tabla viene ordenada de mayor a menor, así que el primero da la escala.
-  const mayor = clients[0]?.total || 1;
-  const totalPor = (s: Species) => clients.reduce((acc, c) => acc + (c.tn[s] || 0), 0);
+  const hayCupos = clientes.some((c) => c.cupoPendiente !== null);
+  // La escala de las barras no depende del orden elegido, sino del mayor.
+  const mayor = Math.max(...clientes.map((c) => c.total), 1);
+  const totalPor = (s: Species) => clientes.reduce((acc, c) => acc + (c.tn[s] || 0), 0);
 
   return (
     <div className="tabla-envoltorio">
       <table className="tabla">
         <thead>
           <tr>
-            <th scope="col">Cliente</th>
+            <Cabecera campo="nombre" orden={orden} onOrden={onOrden} alineada="izquierda">
+              Cliente
+            </Cabecera>
+
             {columnas.map((s) => (
-              <th scope="col" key={s}>
+              <Cabecera key={s} campo={s} orden={orden} onOrden={onOrden}>
                 <span className={`punto-especie punto-especie--${s}`} aria-hidden="true" />
                 {SPECIES_LABEL[s]}
-              </th>
+              </Cabecera>
             ))}
-            <th scope="col">Total TN</th>
-            <th scope="col" className="col--editable">TN / día</th>
-            <th scope="col" className="col--editable">Estimación mes</th>
-            {hayCupos && <th scope="col">Pendiente cupo</th>}
+
+            <Cabecera campo="total" orden={orden} onOrden={onOrden}>
+              Total TN
+            </Cabecera>
+            <Cabecera campo="media" orden={orden} onOrden={onOrden} editable>
+              TN / día
+            </Cabecera>
+            <Cabecera campo="estimacion" orden={orden} onOrden={onOrden} editable>
+              Estimación mes
+            </Cabecera>
+            {hayCupos && (
+              <Cabecera campo="cupo" orden={orden} onOrden={onOrden}>
+                Pendiente cupo
+              </Cabecera>
+            )}
           </tr>
         </thead>
 
         <tbody>
-          {clients.map((c) => (
+          {clientes.map((c) => (
             <Fila
               key={c.name}
               client={c}
               columnas={columnas}
               hayCupos={hayCupos}
               mayor={mayor}
+              diasTrabajados={summary.diasTrabajados}
               diasTotales={summary.diasTotales}
               onSetMedia={onSetMedia}
             />
@@ -67,7 +86,7 @@ export function ClientsTable({ view, onSetMedia }: Props) {
                 {tn(totalPor(s))}
               </td>
             ))}
-            <td className="num" data-etiqueta="Total TN">
+            <td className="num col--editable" data-etiqueta="Total TN">
               {tn(summary.sumaClientes)}
             </td>
             {/* Las mismas cifras que enseña el resumen como "sumando clientes". */}
@@ -79,7 +98,7 @@ export function ClientsTable({ view, onSetMedia }: Props) {
             </td>
             {hayCupos && (
               <td className="num" data-etiqueta="Pendiente cupo">
-                {tn(clients.reduce((acc, c) => acc + (c.cupoPendiente ?? 0), 0))}
+                {tn(clientes.reduce((acc, c) => acc + (c.cupoPendiente ?? 0), 0))}
               </td>
             )}
           </tr>
@@ -89,16 +108,65 @@ export function ClientsTable({ view, onSetMedia }: Props) {
   );
 }
 
+interface CabeceraProps {
+  campo: CampoOrden;
+  orden: Orden;
+  onOrden: (campo: CampoOrden) => void;
+  children: React.ReactNode;
+  alineada?: 'izquierda';
+  editable?: boolean;
+}
+
+/** Cabecera que ordena al pulsarla y dice en qué sentido está ordenando. */
+function Cabecera({ campo, orden, onOrden, children, alineada, editable }: CabeceraProps) {
+  const activa = orden.campo === campo;
+
+  return (
+    <th
+      scope="col"
+      className={editable ? 'col--editable' : undefined}
+      aria-sort={activa ? (orden.desc ? 'descending' : 'ascending') : 'none'}
+    >
+      <button
+        type="button"
+        className={`orden ${alineada === 'izquierda' ? 'orden--izquierda' : ''} ${
+          activa ? 'orden--activa' : ''
+        }`}
+        onClick={() => onOrden(campo)}
+        title={
+          activa
+            ? `Ordenado de ${orden.desc ? 'mayor a menor' : 'menor a mayor'}. Pulsa para invertir.`
+            : 'Ordenar por esta columna'
+        }
+      >
+        {children}
+        <span className="orden__flecha" aria-hidden="true">
+          {activa ? (orden.desc ? '▾' : '▴') : '▾'}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 interface FilaProps {
   client: ClientView;
   columnas: Species[];
   hayCupos: boolean;
   mayor: number;
+  diasTrabajados: number;
   diasTotales: number;
   onSetMedia: (client: string, media: number | null) => void;
 }
 
-function Fila({ client: c, columnas, hayCupos, mayor, diasTotales, onSetMedia }: FilaProps) {
+function Fila({
+  client: c,
+  columnas,
+  hayCupos,
+  mayor,
+  diasTrabajados,
+  diasTotales,
+  onSetMedia,
+}: FilaProps) {
   const estado = cupoStatus(c);
 
   return (
@@ -148,8 +216,14 @@ function Fila({ client: c, columnas, hayCupos, mayor, diasTotales, onSetMedia }:
         );
       })}
 
-      <td className="num celda--fuerte" data-etiqueta="Total TN">
-        {tn(c.total)}
+      <td className="celda--editable" data-etiqueta="Total TN">
+        <EditableNumber
+          value={c.total}
+          base={c.totalBase}
+          editado={c.editado}
+          label={`Toneladas acumuladas de ${c.name}`}
+          onChange={(v) => onSetMedia(c.name, v === null ? null : v / diasTrabajados)}
+        />
       </td>
 
       <td className="celda--editable" data-etiqueta="TN / día">

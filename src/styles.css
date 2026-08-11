@@ -661,19 +661,27 @@ td:last-child .editable {
 
 /* --- Pie y notas ------------------------------------------------------------ */
 
+/* En columnas, como un pie de página de periódico: aprovecha el ancho y cada
+   nota se lee en una medida cómoda en vez de en una tira estrecha a la
+   izquierda con media pantalla vacía al lado. */
 .notas {
   margin-top: 2.5rem;
   padding-top: 1.25rem;
   border-top: var(--rule) solid var(--line);
   display: grid;
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.9rem 2.5rem;
   font-size: 12px;
   color: var(--ink-soft);
-  max-width: 62ch;
+}
+
+.notas p {
+  margin: 0;
+  max-width: 46ch;
 }
 
 .notas__titulo {
-  margin-bottom: 0.25rem;
+  grid-column: 1 / -1;
 }
 
 .aviso {
@@ -704,6 +712,221 @@ td:last-child .editable {
   flex: none;
 }
 
+/* --- Ordenación de la tabla --------------------------------------------------- */
+
+.orden {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.orden--izquierda {
+  justify-content: flex-start;
+}
+
+.orden:hover {
+  color: var(--ink);
+}
+
+.orden--activa {
+  color: var(--naranja);
+}
+
+/* La flecha sólo se ve en la columna activa; en las demás aparece al pasar por
+   encima, que es como se descubre que la tabla se puede ordenar. */
+.orden__flecha {
+  font-size: 9px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.orden:hover .orden__flecha,
+.orden--activa .orden__flecha {
+  opacity: 1;
+}
+
+/* --- Gráfica ------------------------------------------------------------------ */
+
+.grafica {
+  margin-top: 2.5rem;
+  padding: 1.4rem 1.6rem 1.5rem;
+  background: var(--surface);
+  border: var(--rule) solid var(--line);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.grafica__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: var(--rule) solid var(--line);
+}
+
+.grafica__titulo {
+  margin: 0;
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.leyenda__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.leyenda__muestra {
+  width: 12px;
+  height: 8px;
+  border-radius: 1px;
+  flex: none;
+}
+
+.leyenda__muestra--pino { background: var(--pino); }
+.leyenda__muestra--eucalipto { background: var(--eucalipto); }
+.leyenda__muestra--otras { background: var(--otras); }
+
+.leyenda__muestra--proyectado {
+  background: color-mix(in srgb, var(--naranja) 22%, transparent);
+}
+
+.leyenda__muestra--cupo {
+  width: 2px;
+  height: 12px;
+  background: var(--ink);
+}
+
+.grafica__lista {
+  margin: 0;
+  padding: 0.5rem 0 0;
+  list-style: none;
+}
+
+.grafica__fila {
+  display: grid;
+  grid-template-columns: minmax(7rem, 13rem) 1fr minmax(3.5rem, auto);
+  align-items: center;
+  gap: 0 1rem;
+  padding: 0.3rem 0;
+}
+
+.grafica__fila--sim {
+  color: var(--naranja);
+}
+
+.grafica__nombre {
+  font-size: 12px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grafica__fila--sim .grafica__nombre {
+  color: var(--naranja);
+}
+
+/* El raíl: todas las filas comparten escala, que es lo que hace comparables
+   las longitudes de un vistazo. */
+.grafica__pista {
+  position: relative;
+  display: block;
+  height: 14px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  border-radius: 2px;
+}
+
+.grafica__proyectado {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--naranja) 22%, transparent);
+  border-radius: 2px;
+}
+
+.grafica__acumulado {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  overflow: hidden;
+  border-radius: 2px;
+  min-width: 2px;
+}
+
+/* La marca del cupo: dónde tendría que llegar la barra para cubrirlo. */
+.grafica__cupo {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+.grafica__cupo--corto {
+  background: var(--naranja);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--naranja) 20%, transparent);
+}
+
+.grafica__cupo--justo {
+  background: var(--madera);
+}
+
+.grafica__cifra {
+  font-size: 12px;
+  text-align: right;
+  color: var(--ink-soft);
+}
+
+.grafica__fila--sim .grafica__cifra {
+  color: var(--naranja);
+  font-weight: 500;
+}
+
+.grafica__pie {
+  margin: 1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: var(--rule) solid var(--line);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  max-width: 70ch;
+}
+
+@media (max-width: 560px) {
+  .grafica__fila {
+    grid-template-columns: 1fr auto;
+    gap: 0.15rem 0.75rem;
+    padding: 0.5rem 0;
+  }
+
+  .grafica__pista {
+    grid-column: 1 / -1;
+  }
+}
+
 /* --- Compartir --------------------------------------------------------------- */
 
 /* El enlace es el producto: esta caja es lo que hay que ver después de leer la
@@ -728,17 +951,28 @@ td:last-child .editable {
   flex: 1 1 22rem;
 }
 
+/* Sin `flex: none`: con tres botones tiene que poder encoger y repartirse en
+   varias líneas, o se sale por la derecha en pantallas estrechas. */
 .compartir__acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
-  flex: none;
 }
 
 /* Los atajos de envío son enlaces, no botones: que no se distingan. */
 .compartir__acciones .boton {
   text-decoration: none;
   white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .compartir__acciones {
+    width: 100%;
+  }
+
+  .compartir__acciones .boton {
+    flex: 1 1 auto;
+  }
 }
 
 .compartir__titulo {
@@ -811,6 +1045,20 @@ td:last-child .editable {
   background: var(--ink);
   color: var(--paper);
   border-color: var(--ink);
+}
+
+/* Sólo icono: cuadrado, para que no se lea como un botón al que le falta el
+   texto. La etiqueta va en aria-label y en el title. */
+.boton--icono {
+  padding: 0.7rem;
+  aspect-ratio: 1;
+}
+
+.icono {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  display: block;
 }
 
 /* --- Carga del PDF ----------------------------------------------------------- */
