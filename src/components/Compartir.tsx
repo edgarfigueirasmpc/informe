@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { LARGO_INCOMODO } from '../lib/share';
 
 interface Props {
+  /**
+   * La dirección completa, tal y como quedó tras escribirla. Llega como prop y
+   * no se lee de `location` en el render: la URL se reescribe en una tarea
+   * asíncrona posterior, así que leerla aquí daría la anterior.
+   */
+  enlace: string;
   /** Con ajustes puestos, lo que se comparte es el escenario, no el informe. */
   simulando: boolean;
 }
@@ -9,27 +15,26 @@ interface Props {
 type Resultado = 'reposo' | 'copiado' | 'a-mano';
 
 /**
- * Copiar la dirección actual. Como el informe entero vive en el fragmento,
- * pasar el enlace es pasar el informe: quien lo abra verá exactamente esto,
- * simulaciones incluidas.
+ * Compartir el informe. Como vive entero en el fragmento, pasar el enlace es
+ * pasar el informe: quien lo abra verá exactamente esto, simulaciones
+ * incluidas.
  *
  * Copiar al portapapeles falla más de lo que parece —Safari, páginas servidas
  * sin HTTPS, ventanas sin foco—, así que hay tres intentos encadenados y, si
- * todos fallan, se enseña el enlace ya seleccionado para copiarlo a mano. Nunca
- * se deja al usuario a solas con una URL de 600 caracteres en la barra.
+ * todos fallan, se enseña el enlace ya seleccionado. Nunca se deja al usuario a
+ * solas con una URL de 600 caracteres en la barra de direcciones.
  */
-export function Compartir({ simulando }: Props) {
+export function Compartir({ enlace, simulando }: Props) {
   const [resultado, setResultado] = useState<Resultado>('reposo');
-  const [largo, setLargo] = useState(0);
   const campoRef = useRef<HTMLInputElement>(null);
 
   const puedeEnviar = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-  // La URL cambia con cada ajuste: lo copiado antes ya no es lo que se ve.
-  useEffect(() => {
-    setLargo(location.href.length);
-    setResultado('reposo');
-  }, [simulando]);
+  const asunto = simulando ? 'Simulación de toneladas' : 'Informe de toneladas';
+  const cuerpo = `${simulando ? 'Simulación' : 'Informe'} de toneladas:\n\n${enlace}\n`;
+
+  // Cada ajuste cambia el enlace: lo copiado antes ya no es lo que se ve.
+  useEffect(() => setResultado('reposo'), [enlace]);
 
   // Cuando aparece la salida de emergencia, el campo ya está en el DOM y se
   // puede seleccionar de verdad: así basta con pulsar Ctrl+C.
@@ -40,12 +45,9 @@ export function Compartir({ simulando }: Props) {
   }, [resultado]);
 
   async function copiar() {
-    const url = location.href;
-    setLargo(url.length);
-
     // 1) La vía moderna.
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(enlace);
       setResultado('copiado');
       setTimeout(() => setResultado('reposo'), 2500);
       return;
@@ -54,20 +56,20 @@ export function Compartir({ simulando }: Props) {
     }
 
     // 2) La de toda la vida, que funciona donde la anterior no.
-    if (copiarConSeleccion(url)) {
+    if (copiarConSeleccion(enlace)) {
       setResultado('copiado');
       setTimeout(() => setResultado('reposo'), 2500);
       return;
     }
 
     // 3) Que lo copie él, pero con el enlace delante y ya seleccionado.
-    // La selección se hace en un efecto, no aquí: el campo todavía no existe.
+    // La selección se hace en el efecto: el campo aún no está en el DOM.
     setResultado('a-mano');
   }
 
   async function enviar() {
     try {
-      await navigator.share({ title: 'Informe de toneladas', url: location.href });
+      await navigator.share({ title: asunto, url: enlace });
     } catch {
       // Cancelar el diálogo del sistema también entra por aquí: no es un fallo.
     }
@@ -85,10 +87,10 @@ export function Compartir({ simulando }: Props) {
             : 'El enlace lleva dentro el informe. No hace falta contraseña ni que nadie suba nada.'}
         </p>
 
-        {largo > LARGO_INCOMODO && (
+        {enlace.length > LARGO_INCOMODO && (
           <p className="compartir__texto compartir__texto--aviso">
-            El enlace es largo ({largo} caracteres); algunos programas de correo lo parten. Si al
-            recibirlo no abre, envíalo en un mensaje sin formato.
+            El enlace es largo ({enlace.length} caracteres); algunos programas de correo lo parten.
+            Si al recibirlo no abre, envíalo en un mensaje sin formato.
           </p>
         )}
 
@@ -99,10 +101,10 @@ export function Compartir({ simulando }: Props) {
             </p>
             <input
               ref={campoRef}
-              className="compartir__campo num"
+              className="compartir__campo"
               type="text"
               readOnly
-              value={location.href}
+              value={enlace}
               onFocus={(e) => e.target.select()}
               aria-label="Enlace del informe"
             />
@@ -111,11 +113,33 @@ export function Compartir({ simulando }: Props) {
       </div>
 
       <div className="compartir__acciones">
-        {puedeEnviar && (
+        {puedeEnviar ? (
+          // Móviles y Safari: el diálogo del sistema, que ya conoce WhatsApp,
+          // el correo y todo lo que haya instalado.
           <button className="boton" type="button" onClick={() => void enviar()}>
-            Enviar
+            Compartir
           </button>
+        ) : (
+          // En escritorio no hay diálogo del sistema, así que se ofrecen a mano
+          // las dos vías por las que esto se manda de verdad.
+          <>
+            <a
+              className="boton"
+              href={`https://wa.me/?text=${encodeURIComponent(cuerpo)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              WhatsApp
+            </a>
+            <a
+              className="boton"
+              href={`mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`}
+            >
+              Correo
+            </a>
+          </>
         )}
+
         <button className="boton boton--primario" type="button" onClick={() => void copiar()}>
           {resultado === 'copiado' ? 'Copiado' : 'Copiar enlace'}
         </button>

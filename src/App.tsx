@@ -27,10 +27,16 @@ export default function App() {
   // volver a interpretar como enlace entrante lo que acabamos de generar.
   const propio = useRef<string>('');
 
+  // La dirección para compartir. Se guarda como estado en vez de leerla de
+  // `location` allí donde haga falta, porque se reescribe en una tarea
+  // asíncrona y quien la leyera durante el render vería la anterior.
+  const [enlace, setEnlace] = useState(() => location.href);
+
   const escribirUrl = useCallback(async (report: Report, overrides: Overrides) => {
     const fragmento = fragmentoConCarga(await codificar(report, overrides));
     propio.current = fragmento;
     history.replaceState(null, '', fragmento);
+    setEnlace(location.href);
   }, []);
 
   // Al abrir la página, y cada vez que llega un enlace distinto.
@@ -47,6 +53,7 @@ export default function App() {
       const compartido = await descodificar(carga);
       if (!vigente) return;
 
+      setEnlace(location.href);
       setEstado(
         compartido
           ? { fase: 'listo', report: compartido.report, overrides: compartido.overrides }
@@ -105,6 +112,7 @@ export default function App() {
   const cerrar = useCallback(() => {
     propio.current = '';
     history.replaceState(null, '', location.pathname + location.search);
+    setEnlace(location.href);
     setEstado({ fase: 'vacio' });
   }, []);
 
@@ -208,7 +216,7 @@ export default function App() {
 
           <ClientsTable view={view} onSetMedia={setMedia} />
 
-          <Compartir simulando={view.summary.editado} />
+          <Compartir enlace={enlace} simulando={view.summary.editado} />
 
           <div className="notas">
             <p className="notas__titulo eyebrow">Cómo se calcula</p>
