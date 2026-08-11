@@ -856,8 +856,25 @@ td:last-child .editable {
 
 .grafica__lista {
   margin: 0;
-  padding: 0.5rem 0 0;
+  padding: 0.15rem 0 0;
   list-style: none;
+}
+
+.grafica__columnas {
+  display: grid;
+  grid-template-columns: minmax(7rem, 13rem) minmax(4.5rem, auto) 1fr minmax(4.5rem, auto);
+  gap: 0 0.75rem;
+  padding-top: 0.65rem;
+}
+
+.grafica__columna-actual {
+  grid-column: 2;
+  text-align: right;
+}
+
+.grafica__columna-estimacion {
+  grid-column: 4;
+  text-align: left;
 }
 
 .grafica__fila {
@@ -933,30 +950,8 @@ td:last-child .editable {
   font-weight: 500;
 }
 
-.grafica__dato-etiqueta {
-  margin-top: 0.15rem;
-  font-size: 9.5px;
-  color: var(--ink-faint);
-}
-
 .grafica__fila--sim .grafica__dato {
   color: var(--naranja);
-}
-
-.grafica__fila--sim .grafica__dato-etiqueta {
-  color: inherit;
-}
-
-/* A lo ancho y centrado: como cierre de la gráfica, quedarse en una tira
-   estrecha a la izquierda descuadraba la caja entera. */
-.grafica__pie {
-  margin: 1rem 0 0;
-  padding-top: 0.9rem;
-  border-top: var(--rule) solid var(--line);
-  font-size: 11.5px;
-  color: var(--ink-faint);
-  text-align: center;
-  text-wrap: balance;
 }
 
 /* En el teléfono, el nombre ocupa su propia línea y debajo se conserva la
@@ -974,6 +969,20 @@ td:last-child .editable {
     padding: 0.35rem 0;
   }
 
+  .grafica__columnas {
+    grid-template-columns: minmax(4rem, auto) minmax(7rem, 1fr) minmax(4rem, auto);
+    gap: 0 0.45rem;
+    padding-top: 0.7rem;
+  }
+
+  .grafica__columna-actual {
+    grid-column: 1;
+  }
+
+  .grafica__columna-estimacion {
+    grid-column: 3;
+  }
+
   .grafica__nombre {
     grid-column: 1 / -1;
     font-size: 11px;
@@ -988,10 +997,6 @@ td:last-child .editable {
     font-size: 10.5px;
   }
 
-  .grafica__dato-etiqueta {
-    margin-top: 0.05rem;
-    font-size: 8px;
-  }
 }
 
 /* --- Compartir --------------------------------------------------------------- */

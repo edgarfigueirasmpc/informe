@@ -5,8 +5,6 @@ import { tn, tnRedondo } from '../lib/format';
 interface Props {
   clientes: ClientView[];
   columnas: Species[];
-  diasTrabajados: number;
-  diasRestantes: number;
 }
 
 /**
@@ -21,7 +19,7 @@ interface Props {
  * la derecha, que es la única forma rápida de detectar a quién no se le va a
  * llegar. En la tabla eso exige comparar dos columnas cliente a cliente.
  */
-export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: Props) {
+export function Grafica({ clientes, columnas }: Props) {
   if (clientes.length === 0) return null;
 
   // Escala común para comparar acumulado y estimación entre clientes.
@@ -50,6 +48,11 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
         </ul>
       </div>
 
+      <div className="grafica__columnas eyebrow" aria-hidden="true">
+        <span className="grafica__columna-actual">Total actual</span>
+        <span className="grafica__columna-estimacion">Estimación mes</span>
+      </div>
+
       <ol className="grafica__lista">
         {clientes.map((c) => {
           return (
@@ -60,7 +63,6 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
 
               <span className="grafica__dato grafica__dato--actual num" title="Toneladas acumuladas actuales">
                 <span className="grafica__cifra">{tn(c.total)}</span>
-                <span className="grafica__dato-etiqueta">actual</span>
               </span>
 
               <span className="grafica__pista">
@@ -87,18 +89,12 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
                 title="Estimación a fin de mes"
               >
                 <span className="grafica__cifra">{tnRedondo(c.estimacion)}</span>
-                <span className="grafica__dato-etiqueta">estimado</span>
               </span>
             </li>
           );
         })}
       </ol>
 
-      <p className="grafica__pie">
-        Barra sólida: las {tn(clientes.reduce((a, c) => a + c.total, 0))} TN acumuladas en{' '}
-        {diasTrabajados} {diasTrabajados === 1 ? 'día' : 'días'}. En claro, lo que se estima
-        entregar en los {diasRestantes} que quedan.
-      </p>
     </section>
   );
 }

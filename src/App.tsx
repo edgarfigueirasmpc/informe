@@ -243,8 +243,6 @@ export default function App() {
           <Grafica
             clientes={clientes}
             columnas={columnas}
-            diasTrabajados={view.summary.diasTrabajados}
-            diasRestantes={view.summary.diasRestantes}
           />
 
           <ClientsTable
