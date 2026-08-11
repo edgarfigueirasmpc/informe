@@ -13,10 +13,15 @@ import {
 import { fechaCorta, fechaHora } from './lib/format';
 import {
   cargaDelFragmento,
+  cargaHistoricaDelFragmento,
   codificar,
+  codificarHistorico,
   descodificar,
+  descodificarHistorico,
   fragmentoConCarga,
+  fragmentoConHistorico,
 } from './lib/share';
+import type { SharedHistorical } from './lib/history';
 import { FirmaMpc, Mark } from './components/Mark';
 import { Summary } from './components/Summary';
 import { ClientsTable } from './components/ClientsTable';
@@ -24,6 +29,7 @@ import { Loader } from './components/Loader';
 import { EditableNumber } from './components/EditableNumber';
 import { Compartir } from './components/Compartir';
 import { Grafica } from './components/Grafica';
+import { HistoricalView } from './components/HistoricalView';
 
 type Estado =
   | { fase: 'leyendo-url' }
@@ -33,6 +39,11 @@ type Estado =
 
 export default function App() {
   const [estado, setEstado] = useState<Estado>({ fase: 'leyendo-url' });
+  const [seccion, setSeccion] = useState<'informe' | 'historico'>('informe');
+  const [historicoInicial, setHistoricoInicial] = useState<SharedHistorical | null>(null);
+  const [historicoVersion, setHistoricoVersion] = useState(0);
+  const [hayHistorico, setHayHistorico] = useState(false);
+  const [historicoRoto, setHistoricoRoto] = useState(false);
 
   // Lo último que hemos escrito nosotros en la barra de direcciones, para no
   // volver a interpretar como enlace entrante lo que acabamos de generar.
@@ -50,14 +61,52 @@ export default function App() {
     setEnlace(location.href);
   }, []);
 
+  const escribirUrlHistorico = useCallback(async (historico: SharedHistorical) => {
+    setHistoricoInicial(historico);
+    const fragmento = fragmentoConHistorico(await codificarHistorico(historico));
+    propio.current = fragmento;
+    history.replaceState(null, '', fragmento);
+    setEnlace(location.href);
+    setHayHistorico(true);
+    setHistoricoRoto(false);
+  }, []);
+
+  const cambiarHistorico = useCallback(
+    (historico: SharedHistorical) => {
+      void escribirUrlHistorico(historico);
+    },
+    [escribirUrlHistorico],
+  );
+
   // Al abrir la página, y cada vez que llega un enlace distinto.
   useEffect(() => {
     let vigente = true;
 
     async function leer() {
+      const cargaHistorica = cargaHistoricaDelFragmento(location.hash);
+      if (cargaHistorica) {
+        const compartido = await descodificarHistorico(cargaHistorica);
+        if (!vigente) return;
+
+        setEnlace(location.href);
+        setSeccion('historico');
+        setHistoricoInicial(compartido);
+        setHistoricoVersion((version) => version + 1);
+        setHayHistorico(compartido !== null);
+        setHistoricoRoto(compartido === null);
+        setEstado({ fase: 'vacio' });
+        return;
+      }
+
       const carga = cargaDelFragmento(location.hash);
       if (!carga) {
-        if (vigente) setEstado({ fase: 'vacio' });
+        if (vigente) {
+          setEstado({ fase: 'vacio' });
+          setHistoricoInicial(null);
+          setHistoricoVersion((version) => version + 1);
+          setHayHistorico(false);
+          setHistoricoRoto(false);
+        }
         return;
       }
 
@@ -65,6 +114,10 @@ export default function App() {
       if (!vigente) return;
 
       setEnlace(location.href);
+      setHistoricoInicial(null);
+      setHistoricoVersion((version) => version + 1);
+      setHayHistorico(false);
+      setHistoricoRoto(false);
       setEstado(
         compartido
           ? { fase: 'listo', report: compartido.report, overrides: compartido.overrides }
@@ -165,13 +218,34 @@ export default function App() {
           Informe de toneladas
         </h1>
         <span className="masthead__generado">
-          {report && `Generado el ${fechaHora(report.publishedAt)}`}
+          {seccion === 'informe' && report && `Generado el ${fechaHora(report.publishedAt)}`}
         </span>
 
         <FirmaMpc lugar="cabecera" />
       </header>
 
-      {estado.fase === 'roto' && (
+      <nav className="pestanas no-imprimir" aria-label="Secciones" role="tablist">
+        <button
+          className={`pestanas__boton ${seccion === 'informe' ? 'pestanas__boton--activa' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={seccion === 'informe'}
+          onClick={() => setSeccion('informe')}
+        >
+          Informe actual
+        </button>
+        <button
+          className={`pestanas__boton ${seccion === 'historico' ? 'pestanas__boton--activa' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={seccion === 'historico'}
+          onClick={() => setSeccion('historico')}
+        >
+          Histórico
+        </button>
+      </nav>
+
+      {seccion === 'informe' && estado.fase === 'roto' && (
         <div className="vacio">
           <p className="vacio__titulo">Este enlace no se puede leer</p>
           <p>
@@ -181,7 +255,7 @@ export default function App() {
         </div>
       )}
 
-      {estado.fase === 'vacio' && (
+      {seccion === 'informe' && estado.fase === 'vacio' && (
         <div className="vacio">
           <p className="vacio__titulo">Carga el PDF del día</p>
           <p>
@@ -191,7 +265,7 @@ export default function App() {
         </div>
       )}
 
-      {report && view && (
+      {seccion === 'informe' && report && view && (
         <>
           <div className="periodo">
             <h2 className="periodo__rango">
@@ -278,7 +352,19 @@ export default function App() {
         </>
       )}
 
-      <Loader onLoaded={cargar} conInforme={report !== null} />
+      {seccion === 'historico' && (
+        <>
+          <HistoricalView
+            initial={historicoInicial}
+            initialVersion={historicoVersion}
+            linkError={historicoRoto}
+            onChange={cambiarHistorico}
+          />
+          {hayHistorico && <Compartir enlace={enlace} simulando={false} tipo="historico" />}
+        </>
+      )}
+
+      {seccion === 'informe' && <Loader onLoaded={cargar} conInforme={report !== null} />}
 
       <FirmaMpc />
     </div>

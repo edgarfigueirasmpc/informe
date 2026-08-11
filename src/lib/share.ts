@@ -13,8 +13,10 @@
  */
 
 import type { ClientRecord, Overrides, Report, Species } from './model';
+import type { SharedHistorical } from './history';
 
 const CLAVE = 'i';
+const CLAVE_HISTORICO = 'h';
 
 /** Primer carácter de la carga: cómo está empaquetado lo que viene detrás. */
 const COMPRIMIDO = '1';
@@ -22,11 +24,22 @@ const EN_CLARO = '0';
 
 /** Versión del esquema, dentro ya de los datos. */
 const VERSION = 1;
+const VERSION_HISTORICO = 1;
 
 export interface EstadoCompartido {
   report: Report;
   overrides: Overrides;
 }
+
+type HistoricoEmpaquetado = [
+  version: number,
+  csv: string,
+  origen: string,
+  aniosVisibles: number[],
+  mostrarMedia: 0 | 1,
+  mostrarMediana: 0 | 1,
+  mesFoco: number | null,
+];
 
 // ---------------------------------------------------------------------------
 // Esquema compacto
@@ -148,6 +161,39 @@ function desempaquetar(datos: unknown): EstadoCompartido | null {
   };
 }
 
+function empaquetarHistorico(historico: SharedHistorical): HistoricoEmpaquetado {
+  return [
+    VERSION_HISTORICO,
+    historico.csv,
+    historico.sourceName,
+    historico.options.aniosVisibles,
+    historico.options.mostrarMedia ? 1 : 0,
+    historico.options.mostrarMediana ? 1 : 0,
+    historico.options.mesFoco,
+  ];
+}
+
+function desempaquetarHistorico(datos: unknown): SharedHistorical | null {
+  if (!esLista(datos) || datos[0] !== VERSION_HISTORICO || datos.length < 7) return null;
+  if (typeof datos[1] !== 'string' || !datos[1].trim()) return null;
+
+  const aniosVisibles = esLista(datos[3])
+    ? datos[3].filter((anio): anio is number => typeof anio === 'number' && Number.isFinite(anio))
+    : [];
+  const mesFoco = typeof datos[6] === 'number' && datos[6] >= 0 && datos[6] <= 11 ? datos[6] : null;
+
+  return {
+    csv: datos[1],
+    sourceName: typeof datos[2] === 'string' && datos[2] ? datos[2] : 'historico.csv',
+    options: {
+      aniosVisibles,
+      mostrarMedia: datos[4] === 1,
+      mostrarMediana: datos[5] === 1,
+      mesFoco,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Compresión y transporte
 // ---------------------------------------------------------------------------
@@ -184,13 +230,31 @@ function deBase64Url(texto: string): Uint8Array {
 
 /** Empaqueta el informe y los ajustes en la carga que va tras la almohadilla. */
 export async function codificar(report: Report, overrides: Overrides): Promise<string> {
-  const json = new TextEncoder().encode(JSON.stringify(empaquetar(report, overrides)));
+  return codificarDatos(empaquetar(report, overrides));
+}
+
+export async function codificarHistorico(historico: SharedHistorical): Promise<string> {
+  return codificarDatos(empaquetarHistorico(historico));
+}
+
+async function codificarDatos(datos: unknown): Promise<string> {
+  const json = new TextEncoder().encode(JSON.stringify(datos));
   if (!hayCompresion) return EN_CLARO + aBase64Url(json);
   return COMPRIMIDO + aBase64Url(await comprimir(json));
 }
 
 /** Deshace lo anterior. Devuelve null si el enlace está roto o no es de aquí. */
 export async function descodificar(carga: string): Promise<EstadoCompartido | null> {
+  const datos = await descodificarDatos(carga);
+  return datos === null ? null : desempaquetar(datos);
+}
+
+export async function descodificarHistorico(carga: string): Promise<SharedHistorical | null> {
+  const datos = await descodificarDatos(carga);
+  return datos === null ? null : desempaquetarHistorico(datos);
+}
+
+async function descodificarDatos(carga: string): Promise<unknown | null> {
   if (carga.length < 2) return null;
 
   const marca = carga[0];
@@ -204,7 +268,7 @@ export async function descodificar(carga: string): Promise<EstadoCompartido | nu
     else if (marca === EN_CLARO) json = bytes;
     else return null;
 
-    return desempaquetar(JSON.parse(new TextDecoder().decode(json)));
+    return JSON.parse(new TextDecoder().decode(json));
   } catch {
     return null;
   }
@@ -222,8 +286,18 @@ export function cargaDelFragmento(fragmento: string): string | null {
   return params.get(CLAVE);
 }
 
+export function cargaHistoricaDelFragmento(fragmento: string): string | null {
+  const limpio = fragmento.startsWith('#') ? fragmento.slice(1) : fragmento;
+  if (!limpio) return null;
+  return new URLSearchParams(limpio).get(CLAVE_HISTORICO);
+}
+
 export function fragmentoConCarga(carga: string): string {
   return `#${CLAVE}=${carga}`;
+}
+
+export function fragmentoConHistorico(carga: string): string {
+  return `#${CLAVE_HISTORICO}=${carga}`;
 }
 
 /**

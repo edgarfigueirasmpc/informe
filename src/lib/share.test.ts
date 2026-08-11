@@ -4,12 +4,17 @@ import path from 'node:path';
 import { parsePages, type PageText } from './parseReport';
 import {
   cargaDelFragmento,
+  cargaHistoricaDelFragmento,
   codificar,
+  codificarHistorico,
   descodificar,
+  descodificarHistorico,
   fragmentoConCarga,
+  fragmentoConHistorico,
   LARGO_INCOMODO,
 } from './share';
 import { computeView, EMPTY_OVERRIDES, type Overrides } from './model';
+import type { SharedHistorical } from './history';
 
 const FIXTURE = path.join(import.meta.dirname, '__fixtures__', 'informe-2026-08-09.json');
 const paginas = JSON.parse(fs.readFileSync(FIXTURE, 'utf8')) as PageText[];
@@ -90,5 +95,35 @@ describe('lectura del fragmento', () => {
     expect(cargaDelFragmento('#otra=cosa')).toBeNull();
     expect(cargaDelFragmento('#')).toBeNull();
     expect(cargaDelFragmento('')).toBeNull();
+  });
+
+  it('distingue un histórico de un informe', () => {
+    expect(cargaHistoricaDelFragmento('#h=HISTORICO')).toBe('HISTORICO');
+    expect(cargaHistoricaDelFragmento('#i=INFORME')).toBeNull();
+    expect(fragmentoConHistorico('ABC')).toBe('#h=ABC');
+  });
+});
+
+describe('histórico compartido', () => {
+  const historico: SharedHistorical = {
+    csv: 'mes;anio;tn_totales\nEnero;2026;14848',
+    sourceName: 'privado.csv',
+    options: {
+      aniosVisibles: [2024, 2025, 2026],
+      mostrarMedia: true,
+      mostrarMediana: false,
+      mesFoco: 0,
+    },
+  };
+
+  it('conserva el CSV y todos los filtros dentro del enlace', async () => {
+    const carga = await codificarHistorico(historico);
+    expect(await descodificarHistorico(carga)).toEqual(historico);
+    expect(carga).toMatch(/^[0-9A-Za-z_-]+$/);
+  });
+
+  it('rechaza históricos rotos o vacíos', async () => {
+    expect(await descodificarHistorico('0' + btoa(JSON.stringify([1, '', 'x.csv', [], 1, 0, null])))).toBeNull();
+    expect(await descodificarHistorico('9AAAA')).toBeNull();
   });
 });

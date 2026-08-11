@@ -4,6 +4,17 @@ Aplicación para consultar el informe diario de toneladas por cliente y
 **simular escenarios de suministro** sobre la marcha: se cambia la media diaria
 de un cliente y la estimación mensual del conjunto se recalcula al instante.
 
+La pestaña **Histórico** añade una comparativa mensual por años a partir de un
+CSV. Dibuja una línea por año, calcula automáticamente la media y la mediana de
+cada año y permite consultar el desglose completo de cada punto mediante hover,
+foco o clic. Los años y las referencias estadísticas se pueden activar o
+desactivar, y los puntos con notas se señalan con un asterisco.
+
+No se publica ningún histórico de ejemplo: la pestaña aparece vacía hasta que
+el usuario carga su CSV. Una vez cargado, el CSV y los filtros se comprimen en
+el fragmento `#h=` del enlace, igual que el informe diario viaja en `#i=`. El
+fragmento no se envía al servidor; quien no tenga el enlace no recibe los datos.
+
 **No hay servidor, ni base de datos, ni contraseñas.** Se carga el PDF del día
 y el informe entero pasa a viajar dentro del enlace: compartir la dirección es
 compartir el informe.
@@ -34,6 +45,15 @@ el mismo cuidado que se repartiría el PDF.
 
 La columna «Total» que imprime el PDF se ignora a propósito: no cuadra con la
 suma de sus propias quincenas.
+
+### Qué se lee del CSV histórico
+
+El CSV admite separador de punto y coma o coma y necesita las columnas `mes`,
+`anio` y `tn_totales`. Si incluye `tn_eucalipto`, `setubal`, `tn_pino`, `viana`
+y `notas`, esos datos aparecen en la ficha interactiva de cada punto. Las filas
+futuras sin total se consideran huecos y no entran en la media ni la mediana.
+El archivo se lee localmente y sólo pasa a formar parte de la URL cuando se
+genera el enlace compartible.
 
 ### Los cálculos
 

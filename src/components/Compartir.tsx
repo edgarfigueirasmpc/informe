@@ -17,6 +17,7 @@ interface Props {
   enlace: string;
   /** Con ajustes puestos, lo que se comparte es el escenario, no el informe. */
   simulando: boolean;
+  tipo?: 'informe' | 'historico';
 }
 
 type Resultado = 'reposo' | 'copiado' | 'a-mano';
@@ -31,14 +32,19 @@ type Resultado = 'reposo' | 'copiado' | 'a-mano';
  * todos fallan, se enseña el enlace ya seleccionado. Nunca se deja al usuario a
  * solas con una URL de 600 caracteres en la barra de direcciones.
  */
-export function Compartir({ enlace, simulando }: Props) {
+export function Compartir({ enlace, simulando, tipo = 'informe' }: Props) {
   const [resultado, setResultado] = useState<Resultado>('reposo');
   const campoRef = useRef<HTMLInputElement>(null);
 
   const puedeEnviar = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-  const asunto = simulando ? 'Simulación de toneladas' : 'Informe de toneladas';
-  const cuerpo = `${simulando ? 'Simulación' : 'Informe'} de toneladas:\n\n${enlace}\n`;
+  const esHistorico = tipo === 'historico';
+  const asunto = esHistorico
+    ? 'Histórico de toneladas'
+    : simulando
+      ? 'Simulación de toneladas'
+      : 'Informe de toneladas';
+  const cuerpo = `${esHistorico ? 'Histórico' : simulando ? 'Simulación' : 'Informe'} de toneladas:\n\n${enlace}\n`;
 
   // Cada ajuste cambia el enlace: lo copiado antes ya no es lo que se ve.
   useEffect(() => setResultado('reposo'), [enlace]);
@@ -86,10 +92,16 @@ export function Compartir({ enlace, simulando }: Props) {
     <section className="compartir no-imprimir">
       <div className="compartir__texto-bloque">
         <p className="compartir__titulo">
-          {simulando ? 'Comparte esta simulación' : 'Comparte este informe'}
+          {esHistorico
+            ? 'Comparte este histórico'
+            : simulando
+              ? 'Comparte esta simulación'
+              : 'Comparte este informe'}
         </p>
         <p className="compartir__texto">
-          {simulando
+          {esHistorico
+            ? 'El enlace lleva dentro el CSV y los filtros actuales. Sólo quien lo reciba podrá ver estos datos.'
+            : simulando
             ? 'El enlace lleva dentro tus ajustes: quien lo abra verá el mismo escenario.'
             : 'El enlace lleva dentro el informe. No hace falta contraseña ni que nadie suba nada.'}
         </p>
@@ -113,7 +125,7 @@ export function Compartir({ enlace, simulando }: Props) {
               readOnly
               value={enlace}
               onFocus={(e) => e.target.select()}
-              aria-label="Enlace del informe"
+              aria-label={esHistorico ? 'Enlace del histórico' : 'Enlace del informe'}
             />
           </>
         )}
