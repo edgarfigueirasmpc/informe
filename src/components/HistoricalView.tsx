@@ -186,7 +186,7 @@ function HistoricalChart({ datos, options, onOptionsChange }: ChartProps) {
   const [sobre, setSobre] = useState<string | null>(null);
   const [fijado, setFijado] = useState<string | null>(null);
   const anios = useMemo(() => [...new Set(datos.map((dato) => dato.anio))], [datos]);
-  const { aniosVisibles, mostrarMedia, mostrarMediana, mesFoco } = options;
+  const { aniosVisibles, mostrarMedia, mesFoco } = options;
 
   useEffect(() => {
     const elemento = contenedorRef.current;
@@ -223,7 +223,7 @@ function HistoricalChart({ datos, options, onOptionsChange }: ChartProps) {
   const plotAncho = ancho - margen.izquierda - margen.derecha;
   const plotAlto = alto - margen.arriba - margen.abajo;
   const valores = datos.map((dato) => dato.total);
-  const referenciasValores = estadisticasPorAnio.flatMap(({ media, mediana }) => [media, mediana]);
+  const referenciasValores = estadisticasPorAnio.map(({ media }) => media);
   const minimo = Math.min(...valores, ...referenciasValores);
   const maximo = Math.max(...valores, ...referenciasValores);
   const pasoEje = 5000;
@@ -258,10 +258,9 @@ function HistoricalChart({ datos, options, onOptionsChange }: ChartProps) {
     mesFoco === null
       ? estadisticasPorAnio
           .filter(({ anio }) => aniosVisibles.includes(anio))
-          .flatMap(({ anio, color, media, mediana }) => [
-            ...(mostrarMedia ? [{ anio, color, tipo: 'media' as const, valor: media }] : []),
-            ...(mostrarMediana ? [{ anio, color, tipo: 'mediana' as const, valor: mediana }] : []),
-          ])
+          .flatMap(({ anio, color, media }) =>
+            mostrarMedia ? [{ anio, color, valor: media }] : [],
+          )
       : [];
 
   let siguienteEtiqueta = margen.arriba + 4;
@@ -325,15 +324,6 @@ function HistoricalChart({ datos, options, onOptionsChange }: ChartProps) {
             >
               <span className="historico__muestra historico__muestra--media" />
               Media
-            </button>
-            <button
-              className={`historico__chip ${mostrarMediana ? 'historico__chip--activo' : ''}`}
-              type="button"
-              aria-pressed={mostrarMediana}
-              onClick={() => onOptionsChange({ ...options, mostrarMediana: !mostrarMediana })}
-            >
-              <span className="historico__muestra historico__muestra--mediana" />
-              Mediana
             </button>
           </div>
         </div>
@@ -426,12 +416,12 @@ function HistoricalChart({ datos, options, onOptionsChange }: ChartProps) {
             {etiquetas.map((referencia) => {
               const xFinal = ancho - margen.derecha;
               const etiqueta = movil
-                ? `${referencia.tipo === 'media' ? 'Media' : 'Mediana'} ${String(referencia.anio).slice(-2)} · ${tnRedondo(referencia.valor)}`
-                : `${referencia.tipo === 'media' ? 'Media' : 'Mediana'} ${referencia.anio} · ${tnRedondo(referencia.valor)} TN`;
+                ? `Media ${String(referencia.anio).slice(-2)} · ${tnRedondo(referencia.valor)}`
+                : `Media ${referencia.anio} · ${tnRedondo(referencia.valor)} TN`;
               return (
-                <g key={`${referencia.tipo}-${referencia.anio}`}>
+                <g key={`media-${referencia.anio}`}>
                   <line
-                    className={`historico__referencia historico__referencia--${referencia.tipo}`}
+                    className="historico__referencia historico__referencia--media"
                     style={{ stroke: referencia.color }}
                     x1={margen.izquierda}
                     x2={xFinal}

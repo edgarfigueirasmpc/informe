@@ -13,7 +13,6 @@ export interface HistoricalRecord {
 export interface HistoricalOptions {
   aniosVisibles: number[];
   mostrarMedia: boolean;
-  mostrarMediana: boolean;
   mesFoco: number | null;
 }
 
@@ -28,7 +27,6 @@ export function defaultHistoricalOptions(anios: number[]): HistoricalOptions {
   return {
     aniosVisibles: preferidos.length > 0 ? preferidos : anios.slice(-3),
     mostrarMedia: true,
-    mostrarMediana: false,
     mesFoco: null,
   };
 }
@@ -139,13 +137,10 @@ export function parseHistoricalCsv(csv: string): HistoricalRecord[] {
 
 export function historicalStats(registros: HistoricalRecord[]) {
   const valores = registros.map((registro) => registro.total).sort((a, b) => a - b);
-  if (valores.length === 0) return { media: 0, mediana: 0 };
+  if (valores.length === 0) return { media: 0 };
 
   const media = valores.reduce((total, valor) => total + valor, 0) / valores.length;
-  const centro = Math.floor(valores.length / 2);
-  const mediana =
-    valores.length % 2 === 0 ? (valores[centro - 1] + valores[centro]) / 2 : valores[centro];
-  return { media, mediana };
+  return { media };
 }
 
 export const MESES_CORTOS = [

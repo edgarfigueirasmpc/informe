@@ -19,8 +19,8 @@ describe('histórico CSV', () => {
     });
   });
 
-  it('calcula media y mediana sólo con los puntos disponibles', () => {
-    expect(historicalStats(parseHistoricalCsv(CSV))).toEqual({ media: 150, mediana: 150 });
+  it('calcula la media sólo con los puntos disponibles', () => {
+    expect(historicalStats(parseHistoricalCsv(CSV))).toEqual({ media: 150 });
   });
 
   it('exige las columnas principales', () => {

@@ -111,7 +111,6 @@ describe('histórico compartido', () => {
     options: {
       aniosVisibles: [2024, 2025, 2026],
       mostrarMedia: true,
-      mostrarMediana: false,
       mesFoco: 0,
     },
   };

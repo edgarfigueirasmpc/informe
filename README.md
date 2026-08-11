@@ -5,8 +5,8 @@ Aplicación para consultar el informe diario de toneladas por cliente y
 de un cliente y la estimación mensual del conjunto se recalcula al instante.
 
 La pestaña **Histórico** añade una comparativa mensual por años a partir de un
-CSV. Dibuja una línea por año, calcula automáticamente la media y la mediana de
-cada año y permite consultar el desglose completo de cada punto mediante hover,
+CSV. Dibuja una línea por año, calcula automáticamente la media de cada año y
+permite consultar el desglose completo de cada punto mediante hover,
 foco o clic. Los años y las referencias estadísticas se pueden activar o
 desactivar, y los puntos con notas se señalan con un asterisco.
 
@@ -51,7 +51,7 @@ suma de sus propias quincenas.
 El CSV admite separador de punto y coma o coma y necesita las columnas `mes`,
 `anio` y `tn_totales`. Si incluye `tn_eucalipto`, `setubal`, `tn_pino`, `viana`
 y `notas`, esos datos aparecen en la ficha interactiva de cada punto. Las filas
-futuras sin total se consideran huecos y no entran en la media ni la mediana.
+futuras sin total se consideran huecos y no entran en la media.
 El archivo se lee localmente y sólo pasa a formar parte de la URL cuando se
 genera el enlace compartible.
 

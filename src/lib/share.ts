@@ -37,7 +37,7 @@ type HistoricoEmpaquetado = [
   origen: string,
   aniosVisibles: number[],
   mostrarMedia: 0 | 1,
-  mostrarMediana: 0 | 1,
+  reservadoLegacy: 0,
   mesFoco: number | null,
 ];
 
@@ -168,7 +168,7 @@ function empaquetarHistorico(historico: SharedHistorical): HistoricoEmpaquetado 
     historico.sourceName,
     historico.options.aniosVisibles,
     historico.options.mostrarMedia ? 1 : 0,
-    historico.options.mostrarMediana ? 1 : 0,
+    0,
     historico.options.mesFoco,
   ];
 }
@@ -188,7 +188,6 @@ function desempaquetarHistorico(datos: unknown): SharedHistorical | null {
     options: {
       aniosVisibles,
       mostrarMedia: datos[4] === 1,
-      mostrarMediana: datos[5] === 1,
       mesFoco,
     },
   };

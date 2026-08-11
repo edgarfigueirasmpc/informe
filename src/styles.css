@@ -1231,15 +1231,9 @@ td:last-child .editable {
   flex: none;
 }
 
-.historico__muestra--media,
-.historico__muestra--mediana {
+.historico__muestra--media {
   height: 0;
   border-top: 2px dashed var(--ink);
-}
-
-.historico__muestra--mediana {
-  border-top-style: dotted;
-  border-top-color: var(--ink-faint);
 }
 
 .historico__svg-wrap {
@@ -1287,10 +1281,6 @@ td:last-child .editable {
   stroke-dasharray: 7 5;
   opacity: 0.42;
   vector-effect: non-scaling-stroke;
-}
-
-.historico__referencia--mediana {
-  stroke-dasharray: 2 5;
 }
 
 .historico__referencia-conector {
