@@ -4,7 +4,8 @@
    Sigue siendo papel, tinta y líneas finas, pero con el color del logo
    haciendo trabajo de lectura, no de adorno:
 
-     azul    → lo consolidado, lo que ya ha pasado (pino, total acumulado)
+     azul    → pino
+     verde   → eucalipto
      naranja → lo proyectado y lo simulado (estimaciones, ediciones, avisos)
      madera  → acentos cálidos y estados intermedios
 
@@ -15,6 +16,7 @@
 :root {
   --naranja: #ff4912;
   --azul: #2045b0;
+  --verde: #258357;
   --madera: #c98a2e;
 
   --paper: #f4f3ef;
@@ -30,8 +32,8 @@
   --accent-soft: rgba(255, 73, 18, 0.07);
   --azul-soft: rgba(32, 69, 176, 0.07);
 
-  --pino: var(--naranja);
-  --eucalipto: var(--azul);
+  --pino: var(--azul);
+  --eucalipto: var(--verde);
   --otras: var(--madera);
 
   --gap: clamp(1.5rem, 4vw, 3.5rem);
@@ -48,6 +50,7 @@
   :root {
     --naranja: #ff5c2b;
     --azul: #7b9aec;
+    --verde: #65c994;
     --madera: #d9ae5f;
 
     --paper: #131311;
@@ -848,13 +851,7 @@ td:last-child .editable {
 .leyenda__muestra--otras { background: var(--otras); }
 
 .leyenda__muestra--proyectado {
-  background: color-mix(in srgb, var(--naranja) 22%, transparent);
-}
-
-.leyenda__muestra--cupo {
-  width: 2px;
-  height: 12px;
-  background: var(--ink);
+  background: var(--naranja);
 }
 
 .grafica__lista {
@@ -865,9 +862,9 @@ td:last-child .editable {
 
 .grafica__fila {
   display: grid;
-  grid-template-columns: minmax(7rem, 13rem) 1fr minmax(3.5rem, auto);
+  grid-template-columns: minmax(7rem, 13rem) minmax(4.5rem, auto) 1fr minmax(4.5rem, auto);
   align-items: center;
-  gap: 0 1rem;
+  gap: 0 0.75rem;
   padding: 0.3rem 0;
 }
 
@@ -900,7 +897,7 @@ td:last-child .editable {
 .grafica__proyectado {
   position: absolute;
   inset: 0 auto 0 0;
-  background: color-mix(in srgb, var(--naranja) 22%, transparent);
+  background: var(--naranja);
   border-radius: 2px;
 }
 
@@ -913,49 +910,40 @@ td:last-child .editable {
   min-width: 2px;
 }
 
-/* La marca del cupo: dónde tendría que llegar la barra para cubrirlo. */
-.grafica__cupo {
-  position: absolute;
-  top: -3px;
-  bottom: -3px;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--ink);
-  border-radius: 1px;
-}
-
-.grafica__cupo--pendiente {
-  background: var(--naranja);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--naranja) 20%, transparent);
-}
-
-.grafica__cifras {
+.grafica__dato {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   line-height: 1.2;
   white-space: nowrap;
 }
 
+.grafica__dato--actual {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.grafica__dato--estimacion {
+  align-items: flex-start;
+  text-align: left;
+  color: var(--ink-soft);
+}
+
 .grafica__cifra {
   font-size: 12px;
-  text-align: right;
-  color: var(--ink);
   font-weight: 500;
 }
 
-.grafica__estimacion {
+.grafica__dato-etiqueta {
   margin-top: 0.15rem;
   font-size: 9.5px;
   color: var(--ink-faint);
 }
 
-.grafica__fila--sim .grafica__cifras {
+.grafica__fila--sim .grafica__dato {
   color: var(--naranja);
 }
 
-.grafica__fila--sim .grafica__cifra,
-.grafica__fila--sim .grafica__estimacion {
+.grafica__fila--sim .grafica__dato-etiqueta {
   color: inherit;
 }
 
@@ -971,45 +959,38 @@ td:last-child .editable {
   text-wrap: balance;
 }
 
-/* En el teléfono, una línea por cliente. La cifra se mete dentro de la barra en
-   vez de ocupar columna propia: con trece clientes, pasar de dos líneas a una
-   es la diferencia entre compararlos de un vistazo o a base de scroll. */
+/* En el teléfono, el nombre ocupa su propia línea y debajo se conserva la
+   lectura izquierda → derecha: actual, barra y estimado. Así ambos datos siguen
+   visibles sin superponerse al raíl ni a la marca del cupo. */
 @media (max-width: 560px) {
   .grafica {
     padding: 1.2rem 1rem 1.3rem;
   }
 
   .grafica__fila {
-    position: relative;
-    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 1.1fr);
+    grid-template-columns: minmax(4rem, auto) minmax(7rem, 1fr) minmax(4rem, auto);
     align-items: center;
-    gap: 0 0.6rem;
-    padding: 0.2rem 0;
+    gap: 0 0.45rem;
+    padding: 0.35rem 0;
   }
 
   .grafica__nombre {
+    grid-column: 1 / -1;
     font-size: 11px;
+    margin-bottom: 0.2rem;
   }
 
   .grafica__pista {
-    height: 17px;
-  }
-
-  .grafica__cifras {
-    position: absolute;
-    right: 0.4rem;
-    top: 50%;
-    transform: translateY(-50%);
-    /* Que no estorbe al title de la barra ni al de la marca de cupo. */
-    pointer-events: none;
+    height: 14px;
   }
 
   .grafica__cifra {
     font-size: 10.5px;
   }
 
-  .grafica__estimacion {
-    display: none;
+  .grafica__dato-etiqueta {
+    margin-top: 0.05rem;
+    font-size: 8px;
   }
 }
 
