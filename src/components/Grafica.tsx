@@ -47,7 +47,7 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
           ))}
           <li className="leyenda__item">
             <span className="leyenda__muestra leyenda__muestra--proyectado" />
-            Resto del mes
+            Resto del mes (estimado)
           </li>
           {hayCupos && (
             <li className="leyenda__item">

@@ -171,10 +171,11 @@ export default function App() {
           <Mark />
           Informe de toneladas
         </h1>
-        <div className="masthead__meta no-imprimir">
+        <div className="masthead__meta">
+          <FirmaMpc lugar="cabecera" />
           {report && <span>Generado el {fechaHora(report.publishedAt)}</span>}
           {report && (
-            <button className="linkish" type="button" onClick={cerrar}>
+            <button className="linkish no-imprimir" type="button" onClick={cerrar}>
               Cerrar
             </button>
           )}

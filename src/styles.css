@@ -698,11 +698,32 @@ td:last-child .editable {
 .firma {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.7rem;
   margin-top: 3.5rem;
   padding-top: 1.5rem;
   border-top: var(--rule) solid var(--line);
   opacity: 0.75;
+}
+
+/* La misma firma, en pequeño y en la cabecera: quien abre un enlace ve de quién
+   es el informe antes de leer una sola cifra. */
+.firma--cabecera {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 0.5rem;
+  opacity: 1;
+}
+
+.firma--cabecera .firma__marca {
+  height: 20px;
+}
+
+@media (max-width: 640px) {
+  .firma--cabecera .eyebrow {
+    display: none;
+  }
 }
 
 .firma__marca {
@@ -915,15 +936,38 @@ td:last-child .editable {
   max-width: 70ch;
 }
 
+/* En el teléfono, una línea por cliente. La cifra se mete dentro de la barra en
+   vez de ocupar columna propia: con trece clientes, pasar de dos líneas a una
+   es la diferencia entre compararlos de un vistazo o a base de scroll. */
 @media (max-width: 560px) {
+  .grafica {
+    padding: 1.2rem 1rem 1.3rem;
+  }
+
   .grafica__fila {
-    grid-template-columns: 1fr auto;
-    gap: 0.15rem 0.75rem;
-    padding: 0.5rem 0;
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 1.1fr);
+    align-items: center;
+    gap: 0 0.6rem;
+    padding: 0.2rem 0;
+  }
+
+  .grafica__nombre {
+    font-size: 11px;
   }
 
   .grafica__pista {
-    grid-column: 1 / -1;
+    height: 17px;
+  }
+
+  .grafica__cifra {
+    position: absolute;
+    right: 0.4rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10.5px;
+    /* Que no estorbe al title de la barra ni al de la marca de cupo. */
+    pointer-events: none;
   }
 }
 

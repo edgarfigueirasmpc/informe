@@ -20,12 +20,21 @@ export function Mark({ className = 'marca' }: { className?: string }) {
 /**
  * Firma corporativa. A este logo no se le toca el filo blanco, que es parte del
  * dibujo y separa las letras entre sí.
+ *
+ * Sale en dos sitios: arriba, para que quien abra un enlace sepa de quién es el
+ * informe antes de leer una sola cifra, y abajo cerrando la página.
  */
-export function FirmaMpc() {
-  return (
-    <footer className="firma">
+export function FirmaMpc({ lugar = 'pie' }: { lugar?: 'pie' | 'cabecera' }) {
+  const contenido = (
+    <>
       <img className="firma__marca" src={mpcUrl} alt="" width={106} height={96} />
       <span className="eyebrow">Maderas Paco Cacharolo</span>
-    </footer>
+    </>
+  );
+
+  return lugar === 'cabecera' ? (
+    <span className="firma firma--cabecera">{contenido}</span>
+  ) : (
+    <footer className="firma">{contenido}</footer>
   );
 }
