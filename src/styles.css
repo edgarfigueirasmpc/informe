@@ -723,10 +723,38 @@ td:last-child .editable {
   box-shadow: var(--sombra);
 }
 
+.compartir__texto-bloque {
+  min-width: 0;
+  flex: 1 1 22rem;
+}
+
+.compartir__acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex: none;
+}
+
 .compartir__titulo {
   margin: 0 0 0.3rem;
   font-size: 14px;
   font-weight: 500;
+}
+
+/* Salida de emergencia cuando el navegador no deja copiar solo. */
+.compartir__campo {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: var(--rule) solid var(--azul);
+  border-radius: 2px;
+  background: var(--surface);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.compartir__campo:focus {
+  outline: 2px solid var(--azul);
+  outline-offset: 1px;
 }
 
 .compartir__texto {
