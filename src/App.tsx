@@ -120,13 +120,6 @@ export default function App() {
     [cambiarOverrides],
   );
 
-  const cerrar = useCallback(() => {
-    propio.current = '';
-    history.replaceState(null, '', location.pathname + location.search);
-    setEnlace(location.href);
-    setEstado({ fase: 'vacio' });
-  }, []);
-
   const view = useMemo(
     () => (estado.fase === 'listo' ? computeView(estado.report, estado.overrides) : null),
     [estado],
@@ -171,15 +164,11 @@ export default function App() {
           <Mark />
           Informe de toneladas
         </h1>
-        <div className="masthead__meta">
-          <FirmaMpc lugar="cabecera" />
-          {report && <span>Generado el {fechaHora(report.publishedAt)}</span>}
-          {report && (
-            <button className="linkish no-imprimir" type="button" onClick={cerrar}>
-              Cerrar
-            </button>
-          )}
-        </div>
+        <span className="masthead__generado">
+          {report && `Generado el ${fechaHora(report.publishedAt)}`}
+        </span>
+
+        <FirmaMpc lugar="cabecera" />
       </header>
 
       {estado.fase === 'roto' && (
