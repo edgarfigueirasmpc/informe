@@ -28,7 +28,7 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
 
   // Escala común. Entra también el cupo, para que su marca nunca se salga.
   const tope = Math.max(
-    ...clientes.map((c) => Math.max(c.estimacion, c.total + (c.cupoPendiente ?? 0))),
+    ...clientes.map((c) => Math.max(c.estimacion, c.totalBase + (c.cupoPendiente ?? 0))),
     1,
   );
   const pct = (v: number) => `${Math.min(100, (v / tope) * 100)}%`;
@@ -61,7 +61,7 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
       <ol className="grafica__lista">
         {clientes.map((c) => {
           const estado = cupoStatus(c);
-          const objetivo = c.cupoPendiente === null ? null : c.total + c.cupoPendiente;
+          const objetivo = c.cupoPendiente === null ? null : c.totalBase + c.cupoPendiente;
 
           return (
             <li key={c.name} className={`grafica__fila ${c.editado ? 'grafica__fila--sim' : ''}`}>
@@ -92,15 +92,21 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
                     style={{ left: pct(objetivo) }}
                     title={
                       `Para cubrir el cupo hacen falta ${tn(objetivo)} TN en total ` +
-                      `(${tn(c.total)} servidas + ${tn(c.cupoPendiente!)} pendientes). ` +
+                      `Actualmente hay ${tn(c.total)} TN servidas y quedan ` +
+                      `${tn(c.cupoPendiente!)} TN pendientes según el informe. ` +
                       `Se estiman ${tnRedondo(c.estimacion)} TN a fin de mes.`
                     }
                   />
                 )}
               </span>
 
-              <span className="grafica__cifra num" title="Estimación a fin de mes">
-                {tnRedondo(c.estimacion)}
+              <span className="grafica__cifras num">
+                <span className="grafica__cifra" title="Toneladas acumuladas actuales">
+                  {tn(c.total)}
+                </span>
+                <span className="grafica__estimacion" title="Estimación a fin de mes">
+                  {tnRedondo(c.estimacion)} estimado
+                </span>
               </span>
             </li>
           );
@@ -111,7 +117,8 @@ export function Grafica({ clientes, columnas, diasTrabajados, diasRestantes }: P
         Barra sólida: las {tn(clientes.reduce((a, c) => a + c.total, 0))} TN acumuladas en{' '}
         {diasTrabajados} {diasTrabajados === 1 ? 'día' : 'días'}. En claro, lo que se estima
         entregar en los {diasRestantes} que quedan.
-        {hayCupos && ' La marca vertical es el cupo: si la barra no llega, no se cubre.'}
+        {hayCupos &&
+          ' La marca vertical es el cupo: si la barra sólida no llega, aún no está cubierto.'}
       </p>
     </section>
   );

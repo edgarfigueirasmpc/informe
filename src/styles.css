@@ -671,12 +671,10 @@ td:last-child .editable {
   transform: translateY(-1px);
 }
 
-.cupo--holgado .cupo__punto { background: var(--azul); }
-.cupo--justo .cupo__punto { background: var(--madera); }
-.cupo--corto .cupo__punto { background: var(--naranja); }
+.cupo--cubierto .cupo__punto { background: var(--azul); }
+.cupo--pendiente .cupo__punto { background: var(--naranja); }
 
-.cupo--justo { color: var(--madera); }
-.cupo--corto { color: var(--naranja); font-weight: 500; }
+.cupo--pendiente { color: var(--naranja); font-weight: 500; }
 
 /* --- Pie y notas ------------------------------------------------------------ */
 
@@ -926,24 +924,39 @@ td:last-child .editable {
   border-radius: 1px;
 }
 
-.grafica__cupo--corto {
+.grafica__cupo--pendiente {
   background: var(--naranja);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--naranja) 20%, transparent);
 }
 
-.grafica__cupo--justo {
-  background: var(--madera);
+.grafica__cifras {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .grafica__cifra {
   font-size: 12px;
   text-align: right;
-  color: var(--ink-soft);
+  color: var(--ink);
+  font-weight: 500;
 }
 
-.grafica__fila--sim .grafica__cifra {
+.grafica__estimacion {
+  margin-top: 0.15rem;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+}
+
+.grafica__fila--sim .grafica__cifras {
   color: var(--naranja);
-  font-weight: 500;
+}
+
+.grafica__fila--sim .grafica__cifra,
+.grafica__fila--sim .grafica__estimacion {
+  color: inherit;
 }
 
 /* A lo ancho y centrado: como cierre de la gráfica, quedarse en una tira
@@ -982,14 +995,21 @@ td:last-child .editable {
     height: 17px;
   }
 
-  .grafica__cifra {
+  .grafica__cifras {
     position: absolute;
     right: 0.4rem;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 10.5px;
     /* Que no estorbe al title de la barra ni al de la marca de cupo. */
     pointer-events: none;
+  }
+
+  .grafica__cifra {
+    font-size: 10.5px;
+  }
+
+  .grafica__estimacion {
+    display: none;
   }
 }
 

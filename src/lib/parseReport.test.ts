@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parsePages, type PageText } from './parseReport';
-import { computeView, EMPTY_OVERRIDES } from './model';
+import { computeView, cupoStatus, EMPTY_OVERRIDES } from './model';
 import { fixEncoding, parseNumber } from './text';
 
 const FIXTURE = path.join(import.meta.dirname, '__fixtures__', 'informe-2026-08-09.json');
@@ -177,6 +177,19 @@ describe('cálculo y simulación', () => {
       expect(c.total).toBeCloseTo(c.totalBase, 6);
     }
     expect(view.summary.sumaClientes).toBeCloseTo(3872.54, 2);
+  });
+
+  it('calcula el estado del cupo con el total actual, no con la estimación futura', () => {
+    const view = computeView(report, EMPTY_OVERRIDES);
+    const viana = view.clients.find((c) => c.name.startsWith('DS SMITH'))!;
+
+    // Su estimación mensual supera ampliamente el objetivo, pero hoy todavía
+    // quedan 377,76 TN: por tanto el cupo no está cubierto.
+    expect(viana.estimacion).toBeGreaterThan(viana.totalBase + viana.cupoPendiente!);
+    expect(cupoStatus(viana)).toBe('pendiente');
+
+    const alDia = { ...viana, total: viana.totalBase + viana.cupoPendiente! };
+    expect(cupoStatus(alDia)).toBe('cubierto');
   });
 
   it('reacciona al cambio de días laborables restantes', () => {

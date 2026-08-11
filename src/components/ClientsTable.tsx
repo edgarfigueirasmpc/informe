@@ -14,9 +14,8 @@ interface Props {
 
 const ETIQUETA_CUPO: Record<ReturnType<typeof cupoStatus>, string> = {
   'sin-cupo': '',
-  holgado: 'Se cubre',
-  justo: 'Justo',
-  corto: 'No llega',
+  cubierto: 'Cubierto',
+  pendiente: 'No cubierto',
 };
 
 export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Props) {
@@ -57,7 +56,7 @@ export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Pro
             </Cabecera>
             {hayCupos && (
               <Cabecera campo="cupo" orden={orden} onOrden={onOrden}>
-                Pendiente cupo
+                Cupo actual
               </Cabecera>
             )}
           </tr>
@@ -97,7 +96,7 @@ export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Pro
               {tnRedondo(summary.estimacionClientes)}
             </td>
             {hayCupos && (
-              <td className="num" data-etiqueta="Pendiente cupo">
+              <td className="num" data-etiqueta="Cupo pendiente total">
                 {tn(clientes.reduce((acc, c) => acc + (c.cupoPendiente ?? 0), 0))}
               </td>
             )}
@@ -248,17 +247,16 @@ function Fila({
       </td>
 
       {hayCupos && (
-        <td className="num" data-etiqueta="Pendiente cupo">
+        <td className="num" data-etiqueta="Cupo actual">
           {c.cupoPendiente === null ? (
             <span className="celda--nula">—</span>
           ) : (
             <span
               className={`cupo cupo--${estado}`}
               title={
-                `Quedan ${tn(c.cupoPendiente)} TN de cupo por servir. ` +
-                `Al ritmo actual se entregarían ${tnRedondo(c.restanteEstimado)} TN en lo que ` +
-                `resta de mes` +
-                (c.cupoRatio !== null ? ` (${porcentaje(c.cupoRatio)} del cupo).` : '.')
+                `${ETIQUETA_CUPO[estado]} con los datos actuales: ` +
+                `${tn(c.total)} TN servidas y ${tn(c.cupoPendiente)} TN pendientes. ` +
+                `El estado no tiene en cuenta la estimación futura.`
               }
             >
               <span className="cupo__punto" aria-hidden="true" />

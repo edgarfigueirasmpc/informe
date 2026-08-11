@@ -276,15 +276,14 @@ export function ordenarClientes(clients: ClientView[], orden: Orden): ClientView
 }
 
 /**
- * Estado del cupo pendiente. Interpretación: el cupo pendiente son TN que
- * quedan por servir; si lo que se estima entregar en el resto del mes no llega,
- * el cupo se queda corto.
+ * Estado actual del cupo. El objetivo se reconstruye con el acumulado original
+ * más las toneladas que el informe marca como pendientes. Se compara contra el
+ * total actual, nunca contra la estimación de fin de mes.
  */
-export type CupoStatus = 'sin-cupo' | 'holgado' | 'justo' | 'corto';
+export type CupoStatus = 'sin-cupo' | 'cubierto' | 'pendiente';
 
 export function cupoStatus(c: ClientView): CupoStatus {
-  if (c.cupoRatio === null) return 'sin-cupo';
-  if (c.cupoRatio >= 1.15) return 'holgado';
-  if (c.cupoRatio >= 1) return 'justo';
-  return 'corto';
+  if (c.cupoPendiente === null) return 'sin-cupo';
+  const objetivo = c.totalBase + c.cupoPendiente;
+  return c.total >= objetivo ? 'cubierto' : 'pendiente';
 }

@@ -56,11 +56,10 @@ escenario y no sólo el informe.
 
 ### Pendiente de cupo
 
-Se compara el cupo pendiente de cada cliente con lo que se estima entregarle en
-los días que quedan de mes, y se marca en azul, ámbar o naranja según se cubra
-con holgura, justo o no llegue. Si la lectura correcta del dato fuera la
-contraria (que el cupo sea un techo que no se debe superar), se cambia en
-`cupoStatus()`, en [`src/lib/model.ts`](src/lib/model.ts).
+El estado del cupo se calcula exclusivamente con los datos actuales. El objetivo
+se reconstruye sumando al acumulado original las toneladas que el informe marca
+como pendientes; no se usa la estimación de fin de mes. La tabla indica de forma
+directa si está «Cubierto» o «No cubierto».
 
 ## Puesta en marcha en local
 
