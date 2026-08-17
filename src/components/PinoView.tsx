@@ -615,10 +615,6 @@ interface QuesitosProps {
   onCambio: (parcial: Partial<PinoOptions>) => void;
 }
 
-/** Los sectores por debajo de este peso se juntan: el ojo no los distingue. */
-const MINIMO_SECTOR = 0.02;
-const MAXIMO_SECTORES = 7;
-
 function Quesitos({ dataset, ambito, options, nombreAmbito, onCambio }: QuesitosProps) {
   const { tipoFoco, clienteFoco } = options;
 
@@ -639,32 +635,32 @@ function Quesitos({ dataset, ambito, options, nombreAmbito, onCambio }: Quesitos
   // Cada cliente se pinta con el tono de la madera que más le mandan, en el
   // escalón que ocupa dentro de ella: así el quesito de clientes y el de
   // maderas cuentan lo mismo con los mismos colores.
-  const sectoresCliente = agruparCola(
-    dataset.clientes
-      .map((cliente) => {
-        const valor = porCliente.porCliente[cliente.id] ?? 0;
-        const dominante =
-          dataset.tipos
-            .map((tipo) => ({ tipo: tipo.id, valor: porCliente.matriz[tipo.id]?.[cliente.id] ?? 0 }))
-            .sort((a, b) => b.valor - a.valor)[0]?.tipo ?? dataset.tipos[0]?.id;
-        const hermanos = dataset.clientesPorTipo[dominante] ?? [];
+  //
+  // Van todos, uno por uno, por pequeños que sean. Un cliente escondido detrás
+  // de un «otros» es justo el que hay que ir a buscar a mano.
+  const sectoresCliente: Sector[] = dataset.clientes
+    .map((cliente) => {
+      const valor = porCliente.porCliente[cliente.id] ?? 0;
+      const dominante =
+        dataset.tipos
+          .map((tipo) => ({ tipo: tipo.id, valor: porCliente.matriz[tipo.id]?.[cliente.id] ?? 0 }))
+          .sort((a, b) => b.valor - a.valor)[0]?.tipo ?? dataset.tipos[0]?.id;
+      const hermanos = dataset.clientesPorTipo[dominante] ?? [];
 
-        return {
-          clave: cliente.id,
-          label: cliente.label,
-          valor,
-          color: pasoDeRampa(
-            colorDeTipo(dataset, dominante),
-            Math.max(0, hermanos.indexOf(cliente.id)),
-            hermanos.length,
-          ),
-          tenue: clienteFoco !== null && clienteFoco !== cliente.id,
-        };
-      })
-      .filter((sector) => sector.valor > 0)
-      .sort((a, b) => b.valor - a.valor),
-    clienteFoco,
-  );
+      return {
+        clave: cliente.id,
+        label: cliente.label,
+        valor,
+        color: pasoDeRampa(
+          colorDeTipo(dataset, dominante),
+          Math.max(0, hermanos.indexOf(cliente.id)),
+          hermanos.length,
+        ),
+        tenue: clienteFoco !== null && clienteFoco !== cliente.id,
+      };
+    })
+    .filter((sector) => sector.valor > 0)
+    .sort((a, b) => b.valor - a.valor);
 
   const tipoElegido = dataset.tipos.find((tipo) => tipo.id === tipoFoco);
   const clienteElegido = dataset.clientes.find((cliente) => cliente.id === clienteFoco);
@@ -692,39 +688,8 @@ function Quesitos({ dataset, ambito, options, nombreAmbito, onCambio }: Quesitos
         }
         sectores={sectoresCliente}
         totalEtiqueta={`TN · ${nombreAmbito}`}
-        onElegir={(clave) => {
-          if (clave === 'otros') return;
-          onCambio({ clienteFoco: clienteFoco === clave ? null : clave });
-        }}
+        onElegir={(clave) => onCambio({ clienteFoco: clienteFoco === clave ? null : clave })}
       />
     </div>
   );
-}
-
-/**
- * Junta la cola en un «Otros» para que el quesito no pase de siete porciones,
- * que es donde dejan de distinguirse. Nada se pierde: el ranking y la matriz de
- * más abajo siguen listando a todos uno por uno, con sus toneladas.
- */
-function agruparCola(sectores: Sector[], proteger: string | null): Sector[] {
-  const total = sectores.reduce((suma, sector) => suma + sector.valor, 0);
-  if (total <= 0) return sectores;
-
-  const conservados = sectores.filter(
-    (sector, indice) =>
-      sector.clave === proteger || (indice < MAXIMO_SECTORES && sector.valor / total >= MINIMO_SECTOR),
-  );
-  if (conservados.length === sectores.length) return sectores;
-
-  const resto = sectores.filter((sector) => !conservados.includes(sector));
-  return [
-    ...conservados,
-    {
-      clave: 'otros',
-      label: `Otros (${resto.length})`,
-      valor: resto.reduce((suma, sector) => suma + sector.valor, 0),
-      color: 'var(--pc-otros)',
-      tenue: proteger !== null,
-    },
-  ];
 }

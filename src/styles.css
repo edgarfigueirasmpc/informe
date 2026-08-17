@@ -56,7 +56,6 @@
   --pc-3: #17805f;
   --pc-4: #8051a8;
   --pc-5: #c98a2e;
-  --pc-otros: #78756c;
 
   --gap: clamp(1.5rem, 4vw, 3.5rem);
   --rule: 1px;
@@ -101,7 +100,6 @@
     --pc-3: #35a370;
     --pc-4: #bf91e6;
     --pc-5: #d9ae5f;
-    --pc-otros: #98948a;
 
     --pino-sub: #365ab4;
     --eucalipto-sub: #2f7f59;

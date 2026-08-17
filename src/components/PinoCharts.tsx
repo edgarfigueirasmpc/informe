@@ -784,9 +784,10 @@ export function PinoMatriz({
 }: MatrizProps) {
   const resumen = useMemo(() => resumir(registros), [registros]);
 
-  const clientes = dataset.clientes.filter((cliente) => (resumen.porCliente[cliente.id] ?? 0) > 0);
-  const tipos = dataset.tipos.filter((tipo) => (resumen.porTipo[tipo.id] ?? 0) > 0);
-
+  // La tabla lleva a todos los clientes y a todos los tipos que declara la
+  // hoja, aunque en este ámbito no se les mandara nada: que un cliente esté a
+  // cero un mes es un dato, y no verlo en la lista se lee como que no existe.
+  const { clientes, tipos } = dataset;
   if (clientes.length === 0) return null;
 
   const referencia = (tipo: string, cliente: string) =>
