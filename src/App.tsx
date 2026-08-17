@@ -14,14 +14,19 @@ import { fechaCorta, fechaHora } from './lib/format';
 import {
   cargaDelFragmento,
   cargaHistoricaDelFragmento,
+  cargaPinoDelFragmento,
   codificar,
   codificarHistorico,
+  codificarPino,
   descodificar,
   descodificarHistorico,
+  descodificarPino,
   fragmentoConCarga,
   fragmentoConHistorico,
+  fragmentoConPino,
 } from './lib/share';
 import type { SharedHistorical } from './lib/history';
+import type { SharedPino } from './lib/pino';
 import { FirmaMpc, Mark } from './components/Mark';
 import { Summary } from './components/Summary';
 import { ClientsTable } from './components/ClientsTable';
@@ -30,6 +35,7 @@ import { EditableNumber } from './components/EditableNumber';
 import { Compartir } from './components/Compartir';
 import { Grafica } from './components/Grafica';
 import { HistoricalView } from './components/HistoricalView';
+import { PinoView } from './components/PinoView';
 
 type Estado =
   | { fase: 'leyendo-url' }
@@ -37,13 +43,19 @@ type Estado =
   | { fase: 'roto' }
   | { fase: 'listo'; report: Report; overrides: Overrides };
 
+type Seccion = 'informe' | 'historico' | 'pino';
+
 export default function App() {
   const [estado, setEstado] = useState<Estado>({ fase: 'leyendo-url' });
-  const [seccion, setSeccion] = useState<'informe' | 'historico'>('informe');
+  const [seccion, setSeccion] = useState<Seccion>('informe');
   const [historicoInicial, setHistoricoInicial] = useState<SharedHistorical | null>(null);
   const [historicoVersion, setHistoricoVersion] = useState(0);
   const [hayHistorico, setHayHistorico] = useState(false);
   const [historicoRoto, setHistoricoRoto] = useState(false);
+  const [pinoInicial, setPinoInicial] = useState<SharedPino | null>(null);
+  const [pinoVersion, setPinoVersion] = useState(0);
+  const [hayPino, setHayPino] = useState(false);
+  const [pinoRoto, setPinoRoto] = useState(false);
 
   // Lo último que hemos escrito nosotros en la barra de direcciones, para no
   // volver a interpretar como enlace entrante lo que acabamos de generar.
@@ -71,6 +83,16 @@ export default function App() {
     setHistoricoRoto(false);
   }, []);
 
+  const escribirUrlPino = useCallback(async (pino: SharedPino) => {
+    setPinoInicial(pino);
+    const fragmento = fragmentoConPino(await codificarPino(pino));
+    propio.current = fragmento;
+    history.replaceState(null, '', fragmento);
+    setEnlace(location.href);
+    setHayPino(true);
+    setPinoRoto(false);
+  }, []);
+
   const cambiarHistorico = useCallback(
     (historico: SharedHistorical) => {
       void escribirUrlHistorico(historico);
@@ -78,11 +100,50 @@ export default function App() {
     [escribirUrlHistorico],
   );
 
+  const cambiarPino = useCallback(
+    (pino: SharedPino) => {
+      void escribirUrlPino(pino);
+    },
+    [escribirUrlPino],
+  );
+
   // Al abrir la página, y cada vez que llega un enlace distinto.
   useEffect(() => {
     let vigente = true;
 
+    // Cada enlace trae una sola sección; las otras se quedan como estaban al
+    // arrancar, sin datos, para que no asome nada de una visita anterior.
+    function olvidarHistorico() {
+      setHistoricoInicial(null);
+      setHistoricoVersion((version) => version + 1);
+      setHayHistorico(false);
+      setHistoricoRoto(false);
+    }
+
+    function olvidarPino() {
+      setPinoInicial(null);
+      setPinoVersion((version) => version + 1);
+      setHayPino(false);
+      setPinoRoto(false);
+    }
+
     async function leer() {
+      const cargaPino = cargaPinoDelFragmento(location.hash);
+      if (cargaPino) {
+        const compartido = await descodificarPino(cargaPino);
+        if (!vigente) return;
+
+        setEnlace(location.href);
+        setSeccion('pino');
+        olvidarHistorico();
+        setPinoInicial(compartido);
+        setPinoVersion((version) => version + 1);
+        setHayPino(compartido !== null);
+        setPinoRoto(compartido === null);
+        setEstado({ fase: 'vacio' });
+        return;
+      }
+
       const cargaHistorica = cargaHistoricaDelFragmento(location.hash);
       if (cargaHistorica) {
         const compartido = await descodificarHistorico(cargaHistorica);
@@ -90,6 +151,7 @@ export default function App() {
 
         setEnlace(location.href);
         setSeccion('historico');
+        olvidarPino();
         setHistoricoInicial(compartido);
         setHistoricoVersion((version) => version + 1);
         setHayHistorico(compartido !== null);
@@ -102,10 +164,8 @@ export default function App() {
       if (!carga) {
         if (vigente) {
           setEstado({ fase: 'vacio' });
-          setHistoricoInicial(null);
-          setHistoricoVersion((version) => version + 1);
-          setHayHistorico(false);
-          setHistoricoRoto(false);
+          olvidarHistorico();
+          olvidarPino();
         }
         return;
       }
@@ -114,10 +174,8 @@ export default function App() {
       if (!vigente) return;
 
       setEnlace(location.href);
-      setHistoricoInicial(null);
-      setHistoricoVersion((version) => version + 1);
-      setHayHistorico(false);
-      setHistoricoRoto(false);
+      olvidarHistorico();
+      olvidarPino();
       setEstado(
         compartido
           ? { fase: 'listo', report: compartido.report, overrides: compartido.overrides }
@@ -243,6 +301,15 @@ export default function App() {
         >
           Histórico
         </button>
+        <button
+          className={`pestanas__boton ${seccion === 'pino' ? 'pestanas__boton--activa' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={seccion === 'pino'}
+          onClick={() => setSeccion('pino')}
+        >
+          Pino por cliente
+        </button>
       </nav>
 
       {seccion === 'informe' && estado.fase === 'roto' && (
@@ -361,6 +428,18 @@ export default function App() {
             onChange={cambiarHistorico}
           />
           {hayHistorico && <Compartir enlace={enlace} simulando={false} tipo="historico" />}
+        </>
+      )}
+
+      {seccion === 'pino' && (
+        <>
+          <PinoView
+            initial={pinoInicial}
+            initialVersion={pinoVersion}
+            linkError={pinoRoto}
+            onChange={cambiarPino}
+          />
+          {hayPino && <Compartir enlace={enlace} simulando={false} tipo="pino" />}
         </>
       )}
 

@@ -5,16 +5,21 @@ import { parsePages, type PageText } from './parseReport';
 import {
   cargaDelFragmento,
   cargaHistoricaDelFragmento,
+  cargaPinoDelFragmento,
   codificar,
   codificarHistorico,
+  codificarPino,
   descodificar,
   descodificarHistorico,
+  descodificarPino,
   fragmentoConCarga,
   fragmentoConHistorico,
+  fragmentoConPino,
   LARGO_INCOMODO,
 } from './share';
 import { computeView, EMPTY_OVERRIDES, type Overrides } from './model';
 import type { SharedHistorical } from './history';
+import type { SharedPino } from './pino';
 
 const FIXTURE = path.join(import.meta.dirname, '__fixtures__', 'informe-2026-08-09.json');
 const paginas = JSON.parse(fs.readFileSync(FIXTURE, 'utf8')) as PageText[];
@@ -102,6 +107,14 @@ describe('lectura del fragmento', () => {
     expect(cargaHistoricaDelFragmento('#i=INFORME')).toBeNull();
     expect(fragmentoConHistorico('ABC')).toBe('#h=ABC');
   });
+
+  it('distingue el pino por cliente de las otras dos secciones', () => {
+    expect(cargaPinoDelFragmento('#p=PINO')).toBe('PINO');
+    expect(cargaPinoDelFragmento('#h=HISTORICO')).toBeNull();
+    expect(cargaPinoDelFragmento('#i=INFORME')).toBeNull();
+    expect(cargaHistoricaDelFragmento('#p=PINO')).toBeNull();
+    expect(fragmentoConPino('ABC')).toBe('#p=ABC');
+  });
 });
 
 describe('histórico compartido', () => {
@@ -124,5 +137,54 @@ describe('histórico compartido', () => {
   it('rechaza históricos rotos o vacíos', async () => {
     expect(await descodificarHistorico('0' + btoa(JSON.stringify([1, '', 'x.csv', [], 1, 0, null])))).toBeNull();
     expect(await descodificarHistorico('9AAAA')).toBeNull();
+  });
+});
+
+describe('pino por cliente compartido', () => {
+  const pino: SharedPino = {
+    csv: 'anio,mes,puntal_finsa,total_puntal_calculado\n2026,enero,1002,1002',
+    sourceName: 'datos_pino_porcliente.csv',
+    options: {
+      aniosVisibles: [2025, 2026],
+      tipoFoco: 'rolla_gorda',
+      clienteFoco: 'ecos_largos',
+      mesFoco: { anio: 2026, mesIndex: 6 },
+      base: 'cliente',
+    },
+  };
+
+  it('conserva el CSV y todos los filtros dentro del enlace', async () => {
+    const carga = await codificarPino(pino);
+    expect(await descodificarPino(carga)).toEqual(pino);
+    expect(carga).toMatch(/^[0-9A-Za-z_-]+$/);
+  });
+
+  it('vuelve sin foco cuando no había foco', async () => {
+    const suelto: SharedPino = {
+      ...pino,
+      options: { ...pino.options, tipoFoco: null, clienteFoco: null, mesFoco: null, base: 'tipo' },
+    };
+    expect(await descodificarPino(await codificarPino(suelto))).toEqual(suelto);
+  });
+
+  it('rechaza cargas rotas y sanea los valores imposibles', async () => {
+    expect(await descodificarPino('9AAAA')).toBeNull();
+    expect(
+      await descodificarPino('0' + btoa(JSON.stringify([1, '', 'x.csv', [], null, null, null, 'tipo']))),
+    ).toBeNull();
+
+    const raro =
+      '0' + btoa(JSON.stringify([1, 'anio,mes\n', '', [2026, 'x'], '', '  ', [2026, 44], 'lo-que-sea']));
+    expect(await descodificarPino(raro)).toEqual({
+      csv: 'anio,mes\n',
+      sourceName: 'pino-por-cliente.csv',
+      options: {
+        aniosVisibles: [2026],
+        tipoFoco: null,
+        clienteFoco: null,
+        mesFoco: null,
+        base: 'tipo',
+      },
+    });
   });
 });

@@ -1,3 +1,13 @@
+import {
+  MESES,
+  lineasDelCsv,
+  mesDesdeTexto,
+  normalizar,
+  numero,
+  parseRow,
+  separadorDe,
+} from './csv';
+
 export interface HistoricalRecord {
   mes: string;
   mesIndex: number;
@@ -31,66 +41,11 @@ export function defaultHistoricalOptions(anios: number[]): HistoricalOptions {
   };
 }
 
-const MESES = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
-];
-
-const normalizar = (valor: string) =>
-  valor
-    .trim()
-    .toLocaleLowerCase('es')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-
-function parseRow(linea: string, separador: string): string[] {
-  const celdas: string[] = [];
-  let celda = '';
-  let entreComillas = false;
-
-  for (let i = 0; i < linea.length; i += 1) {
-    const caracter = linea[i];
-    if (caracter === '"') {
-      if (entreComillas && linea[i + 1] === '"') {
-        celda += '"';
-        i += 1;
-      } else {
-        entreComillas = !entreComillas;
-      }
-    } else if (caracter === separador && !entreComillas) {
-      celdas.push(celda.trim());
-      celda = '';
-    } else {
-      celda += caracter;
-    }
-  }
-
-  celdas.push(celda.trim());
-  return celdas;
-}
-
-function numero(valor: string | undefined): number | null {
-  if (!valor?.trim()) return null;
-  const limpio = valor.trim().replace(/\s/g, '').replace(',', '.');
-  const resultado = Number(limpio);
-  return Number.isFinite(resultado) ? resultado : null;
-}
-
 export function parseHistoricalCsv(csv: string): HistoricalRecord[] {
-  const lineas = csv.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').filter(Boolean);
+  const lineas = lineasDelCsv(csv);
   if (lineas.length < 2) throw new Error('El CSV no contiene datos históricos.');
 
-  const separador = lineas[0].includes(';') ? ';' : ',';
+  const separador = separadorDe(lineas[0]);
   const cabeceras = parseRow(lineas[0], separador).map(normalizar);
   const indice = (nombre: string) => cabeceras.indexOf(nombre);
   const obligatorias = ['mes', 'anio', 'tn_totales'];
@@ -105,8 +60,7 @@ export function parseHistoricalCsv(csv: string): HistoricalRecord[] {
     const celdas = parseRow(linea, separador);
     const total = numero(celdas[indice('tn_totales')]);
     const anio = numero(celdas[indice('anio')]);
-    const mesRaw = celdas[indice('mes')] ?? '';
-    const mesIndex = MESES.findIndex((mes) => normalizar(mes) === normalizar(mesRaw));
+    const mesIndex = mesDesdeTexto(celdas[indice('mes')] ?? '');
 
     // Los meses futuros vacíos no son ceros: no deben dibujarse ni entrar en
     // los estadísticos.
@@ -142,18 +96,3 @@ export function historicalStats(registros: HistoricalRecord[]) {
   const media = valores.reduce((total, valor) => total + valor, 0) / valores.length;
   return { media };
 }
-
-export const MESES_CORTOS = [
-  'Ene',
-  'Feb',
-  'Mar',
-  'Abr',
-  'May',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dic',
-];

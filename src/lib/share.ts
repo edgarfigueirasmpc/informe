@@ -14,9 +14,11 @@
 
 import type { ClientRecord, Overrides, Report, Species } from './model';
 import type { SharedHistorical } from './history';
+import type { PinoBase, PinoMes, SharedPino } from './pino';
 
 const CLAVE = 'i';
 const CLAVE_HISTORICO = 'h';
+const CLAVE_PINO = 'p';
 
 /** Primer carácter de la carga: cómo está empaquetado lo que viene detrás. */
 const COMPRIMIDO = '1';
@@ -25,6 +27,7 @@ const EN_CLARO = '0';
 /** Versión del esquema, dentro ya de los datos. */
 const VERSION = 1;
 const VERSION_HISTORICO = 1;
+const VERSION_PINO = 1;
 
 export interface EstadoCompartido {
   report: Report;
@@ -39,6 +42,17 @@ type HistoricoEmpaquetado = [
   mostrarMedia: 0 | 1,
   reservadoLegacy: 0,
   mesFoco: number | null,
+];
+
+type PinoEmpaquetado = [
+  version: number,
+  csv: string,
+  origen: string,
+  aniosVisibles: number[],
+  tipoFoco: string | null,
+  clienteFoco: string | null,
+  mesFoco: [anio: number, mesIndex: number] | null,
+  base: PinoBase,
 ];
 
 // ---------------------------------------------------------------------------
@@ -193,6 +207,57 @@ function desempaquetarHistorico(datos: unknown): SharedHistorical | null {
   };
 }
 
+function empaquetarPino(pino: SharedPino): PinoEmpaquetado {
+  const { options } = pino;
+  return [
+    VERSION_PINO,
+    pino.csv,
+    pino.sourceName,
+    options.aniosVisibles,
+    options.tipoFoco,
+    options.clienteFoco,
+    options.mesFoco ? [options.mesFoco.anio, options.mesFoco.mesIndex] : null,
+    options.base,
+  ];
+}
+
+/** Texto no vacío, o null: los identificadores en blanco no son un foco. */
+function idOpcional(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() ? v : null;
+}
+
+function desempaquetarPino(datos: unknown): SharedPino | null {
+  if (!esLista(datos) || datos[0] !== VERSION_PINO || datos.length < 8) return null;
+  if (typeof datos[1] !== 'string' || !datos[1].trim()) return null;
+
+  const mesCrudo = datos[6];
+  const mesFoco: PinoMes | null =
+    esLista(mesCrudo) &&
+    typeof mesCrudo[0] === 'number' &&
+    typeof mesCrudo[1] === 'number' &&
+    mesCrudo[1] >= 0 &&
+    mesCrudo[1] <= 11
+      ? { anio: mesCrudo[0], mesIndex: mesCrudo[1] }
+      : null;
+
+  const base: PinoBase =
+    datos[7] === 'cliente' || datos[7] === 'total' ? datos[7] : 'tipo';
+
+  return {
+    csv: datos[1],
+    sourceName: idOpcional(datos[2]) ?? 'pino-por-cliente.csv',
+    options: {
+      aniosVisibles: esLista(datos[3])
+        ? datos[3].filter((anio): anio is number => typeof anio === 'number' && Number.isFinite(anio))
+        : [],
+      tipoFoco: idOpcional(datos[4]),
+      clienteFoco: idOpcional(datos[5]),
+      mesFoco,
+      base,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Compresión y transporte
 // ---------------------------------------------------------------------------
@@ -236,6 +301,10 @@ export async function codificarHistorico(historico: SharedHistorical): Promise<s
   return codificarDatos(empaquetarHistorico(historico));
 }
 
+export async function codificarPino(pino: SharedPino): Promise<string> {
+  return codificarDatos(empaquetarPino(pino));
+}
+
 async function codificarDatos(datos: unknown): Promise<string> {
   const json = new TextEncoder().encode(JSON.stringify(datos));
   if (!hayCompresion) return EN_CLARO + aBase64Url(json);
@@ -251,6 +320,11 @@ export async function descodificar(carga: string): Promise<EstadoCompartido | nu
 export async function descodificarHistorico(carga: string): Promise<SharedHistorical | null> {
   const datos = await descodificarDatos(carga);
   return datos === null ? null : desempaquetarHistorico(datos);
+}
+
+export async function descodificarPino(carga: string): Promise<SharedPino | null> {
+  const datos = await descodificarDatos(carga);
+  return datos === null ? null : desempaquetarPino(datos);
 }
 
 async function descodificarDatos(carga: string): Promise<unknown | null> {
@@ -291,12 +365,22 @@ export function cargaHistoricaDelFragmento(fragmento: string): string | null {
   return new URLSearchParams(limpio).get(CLAVE_HISTORICO);
 }
 
+export function cargaPinoDelFragmento(fragmento: string): string | null {
+  const limpio = fragmento.startsWith('#') ? fragmento.slice(1) : fragmento;
+  if (!limpio) return null;
+  return new URLSearchParams(limpio).get(CLAVE_PINO);
+}
+
 export function fragmentoConCarga(carga: string): string {
   return `#${CLAVE}=${carga}`;
 }
 
 export function fragmentoConHistorico(carga: string): string {
   return `#${CLAVE_HISTORICO}=${carga}`;
+}
+
+export function fragmentoConPino(carga: string): string {
+  return `#${CLAVE_PINO}=${carga}`;
 }
 
 /**

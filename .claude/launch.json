@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "informe",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
-      "port": 8788
+      "comentario": "Equivale a `npm run dev`. Node vive en el entorno conda `informe` y no en el PATH del sistema, así que se llama al binario por su ruta y a Vite por su entrada: `npm` no arranca porque su propio shebang busca `node` en el PATH.",
+      "runtimeExecutable": "/Users/edgar/miniforge3/envs/informe/bin/node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js"],
+      "port": 5173
     }
   ]
 }

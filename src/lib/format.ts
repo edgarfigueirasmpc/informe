@@ -9,6 +9,7 @@ const nf = (min: number, max: number) =>
   });
 
 const enteros = nf(0, 0);
+const unDecimal = nf(1, 1);
 const dosDecimales = nf(2, 2);
 const flexible = nf(0, 2);
 
@@ -36,6 +37,18 @@ export function delta(n: number, decimales = 0): string {
 
 export function porcentaje(n: number): string {
   return `${enteros.format(Math.round(n * 100))}%`;
+}
+
+/**
+ * Cuotas de reparto. Por debajo del 10% se da un decimal: la diferencia entre
+ * el 2% y el 2,4% de un año de suministro son cientos de toneladas, y
+ * redondeando a entero media docena de clientes acaban empatados a «1%».
+ * Devuelve una raya cuando no hay base sobre la que repartir.
+ */
+export function cuotaPct(n: number | null): string {
+  if (n === null) return '—';
+  const valor = n * 100;
+  return `${(valor > 0 && valor < 10 ? unDecimal : enteros).format(valor)}%`;
 }
 
 /** "01-8-2026" -> "1 ago" */

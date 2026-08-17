@@ -17,7 +17,7 @@ interface Props {
   enlace: string;
   /** Con ajustes puestos, lo que se comparte es el escenario, no el informe. */
   simulando: boolean;
-  tipo?: 'informe' | 'historico';
+  tipo?: 'informe' | 'historico' | 'pino';
 }
 
 type Resultado = 'reposo' | 'copiado' | 'a-mano';
@@ -38,13 +38,19 @@ export function Compartir({ enlace, simulando, tipo = 'informe' }: Props) {
 
   const puedeEnviar = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-  const esHistorico = tipo === 'historico';
-  const asunto = esHistorico
-    ? 'Histórico de toneladas'
-    : simulando
-      ? 'Simulación de toneladas'
-      : 'Informe de toneladas';
-  const cuerpo = `${esHistorico ? 'Histórico' : simulando ? 'Simulación' : 'Informe'} de toneladas:\n\n${enlace}\n`;
+  // Las tres secciones comparten el mismo mecanismo —los datos van dentro del
+  // enlace—, así que sólo cambian los nombres que ve quien lo recibe.
+  const esDeDatos = tipo === 'historico' || tipo === 'pino';
+  const nombre =
+    tipo === 'historico'
+      ? 'Histórico'
+      : tipo === 'pino'
+        ? 'Pino por cliente'
+        : simulando
+          ? 'Simulación'
+          : 'Informe';
+  const asunto = `${nombre} de toneladas`;
+  const cuerpo = `${asunto}:\n\n${enlace}\n`;
 
   // Cada ajuste cambia el enlace: lo copiado antes ya no es lo que se ve.
   useEffect(() => setResultado('reposo'), [enlace]);
@@ -92,14 +98,16 @@ export function Compartir({ enlace, simulando, tipo = 'informe' }: Props) {
     <section className="compartir no-imprimir">
       <div className="compartir__texto-bloque">
         <p className="compartir__titulo">
-          {esHistorico
+          {tipo === 'historico'
             ? 'Comparte este histórico'
-            : simulando
-              ? 'Comparte esta simulación'
-              : 'Comparte este informe'}
+            : tipo === 'pino'
+              ? 'Comparte este desglose'
+              : simulando
+                ? 'Comparte esta simulación'
+                : 'Comparte este informe'}
         </p>
         <p className="compartir__texto">
-          {esHistorico
+          {esDeDatos
             ? 'El enlace lleva dentro el CSV y los filtros actuales. Sólo quien lo reciba podrá ver estos datos.'
             : simulando
             ? 'El enlace lleva dentro tus ajustes: quien lo abra verá el mismo escenario.'
@@ -125,7 +133,7 @@ export function Compartir({ enlace, simulando, tipo = 'informe' }: Props) {
               readOnly
               value={enlace}
               onFocus={(e) => e.target.select()}
-              aria-label={esHistorico ? 'Enlace del histórico' : 'Enlace del informe'}
+              aria-label={`Enlace: ${nombre.toLocaleLowerCase('es')}`}
             />
           </>
         )}

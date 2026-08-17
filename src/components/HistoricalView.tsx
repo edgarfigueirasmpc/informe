@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { tn, tnRedondo } from '../lib/format';
+import { MESES_CORTOS } from '../lib/csv';
 import {
   defaultHistoricalOptions,
   historicalStats,
-  MESES_CORTOS,
   parseHistoricalCsv,
   type HistoricalOptions,
   type HistoricalRecord,

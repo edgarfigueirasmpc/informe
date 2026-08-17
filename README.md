@@ -10,10 +10,18 @@ permite consultar el desglose completo de cada punto mediante hover,
 foco o clic. Los años y las referencias estadísticas se pueden activar o
 desactivar, y los puntos con notas se señalan con un asterisco.
 
-No se publica ningún histórico de ejemplo: la pestaña aparece vacía hasta que
+La pestaña **Pino por cliente** responde a la otra mitad de la pregunta: no
+cuánto, sino **de qué madera y para quién**. Parte de un CSV mensual con el
+cruce completo de tipo de madera × cliente de destino y deja consultarlo desde
+cualquiera de sus lados —qué parte de un tipo se llevó un cliente, qué reparto
+de maderas tuvo un cliente, qué peso tuvo un mes dentro de su año— con los años
+y los meses siempre a la vista a la vez.
+
+No se publica ningún dato de ejemplo: las dos pestañas aparecen vacías hasta que
 el usuario carga su CSV. Una vez cargado, el CSV y los filtros se comprimen en
-el fragmento `#h=` del enlace, igual que el informe diario viaja en `#i=`. El
-fragmento no se envía al servidor; quien no tenga el enlace no recibe los datos.
+el fragmento del enlace —`#h=` el histórico y `#p=` el pino por cliente—, igual
+que el informe diario viaja en `#i=`. El fragmento no se envía al servidor;
+quien no tenga el enlace no recibe los datos.
 
 **No hay servidor, ni base de datos, ni contraseñas.** Se carga el PDF del día
 y el informe entero pasa a viajar dentro del enlace: compartir la dirección es
@@ -54,6 +62,26 @@ y `notas`, esos datos aparecen en la ficha interactiva de cada punto. Las filas
 futuras sin total se consideran huecos y no entran en la media.
 El archivo se lee localmente y sólo pasa a formar parte de la URL cuando se
 genera el enlace compartible.
+
+### Qué se lee del CSV de pino por cliente
+
+Necesita las columnas `anio` y `mes`, y una columna por cada cruce de tipo de
+madera y cliente, con el tipo por delante: `puntal_finsa`, `canter_tome`,
+`rolla_gorda_lamelas`. **Los tipos y los clientes no están escritos en el
+código**: se deducen de la cabecera. Un tipo es todo aquello que tenga una
+columna `total_<tipo>_calculado` y, además, columnas de detalle propias —así
+`total_pino_calculado`, que es el gran total, se descarta solo—. Añadir un
+cliente a la hoja no obliga a tocar nada.
+
+Los totales y los porcentajes que trae la hoja no se usan para calcular: todo
+se vuelve a sumar desde las celdas de detalle, que es lo único que permite
+repartir por cliente. El `total_pino_calculado` sí se lee, pero sólo para
+avisar en pantalla si no cuadra con la suma del detalle. Las columnas
+`porcentaje_*` se ignoran, y `notas` se enseña junto al mes al que pertenece.
+
+`canter_ecos_largos` y `rolla_gorda_ecos` son el mismo cliente —Ecos Largos, con
+«canter» y «rolla gorda» como tipos de madera—, así que se agrupan. Las filas de
+meses futuros, en blanco, son huecos y no cuentan como ceros.
 
 ### Los cálculos
 
@@ -131,12 +159,24 @@ Está preparado para **GitHub Pages**, que no necesita cuenta nueva ni tarjeta:
 ```
 src/lib/parseReport.ts   Reconstruye las tablas del PDF a partir de coordenadas
 src/lib/pdf.ts           Carga pdf.js (perezosa: sólo al cargar un informe)
-src/lib/share.ts         Empaqueta el informe dentro de la URL
+src/lib/share.ts         Empaqueta las tres secciones dentro de la URL
 src/lib/text.ts          Números en formato español y arreglo del mojibake
 src/lib/model.ts         Tipos y toda la aritmética de simulación
+src/lib/csv.ts           Lo común a los dos lectores de CSV
+src/lib/history.ts       Histórico mensual de totales
+src/lib/pino.ts          Matriz de tipo de madera × cliente y sus agregados
 src/components/          Interfaz
 scripts/extraer-logo.py  Recorta los logos del mockup y genera los iconos
 ```
+
+### El color de los gráficos
+
+Los tres tipos de madera tienen tono propio (`--pc-1`, `--pc-2` y `--pc-3` en
+[`src/styles.css`](src/styles.css)), y dentro de un tipo los clientes se
+escalonan sobre ese mismo tono. La serie está comprobada para daltonismo sobre
+las dos superficies de la aplicación —clara y oscura—, y los tonos del modo
+oscuro son una elección aparte, no un aclarado de los del claro. **Cambiar un
+tono suelto obliga a volver a comprobar la serie entera.**
 
 `pdfjs-dist` va en su propio fragmento y se descarga sólo al cargar un PDF:
 quien abre un enlace que ya trae el informe no lo llega a pedir.
