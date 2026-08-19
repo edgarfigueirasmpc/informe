@@ -119,24 +119,27 @@ directa si está «Cubierto» o «No cubierto».
 
 ## Puesta en marcha en local
 
-Hace falta Node 22. Si no lo tienes en el sistema, con conda:
-
 ```bash
-conda create -y -n informe -c conda-forge nodejs=22 && conda activate informe
+./arrancar.sh
 ```
 
-Después:
+Y a mirar en <http://localhost:5173>. `Ctrl+C` para parar.
+
+El script está para no tener que acordarse de dónde vive Node: lo busca en el
+PATH y, si no está, en un entorno de conda llamado `informe`, así que no hace
+falta activar nada antes. Si no lo encuentra en ningún sitio, dice cómo crearlo.
+
+Cualquier otra cosa se le pasa tal cual a `npm`, con la misma búsqueda de Node
+por delante:
 
 ```bash
-npm install
-npm run dev
+./arrancar.sh test          # parser, cálculos y codificación en la URL
+./arrancar.sh run build     # comprobación de tipos + compilación
+./arrancar.sh run preview   # sirve lo compilado, como en producción
 ```
 
-```bash
-npm test          # parser, cálculos y codificación en la URL
-npm run build     # comprobación de tipos + compilación
-npm run preview   # sirve lo compilado, como en producción
-```
+Con Node 22 ya instalado en el sistema, los `npm run dev`, `npm test` y
+`npm run build` de siempre funcionan igual y el script sobra.
 
 ## Despliegue
 
@@ -174,6 +177,7 @@ src/lib/csv.ts           Lo común a los dos lectores de CSV
 src/lib/history.ts       Histórico mensual de totales
 src/lib/pino.ts          Matriz de tipo de madera × cliente y sus agregados
 src/components/          Interfaz
+arrancar.sh              Levanta el proyecto en local buscando Node por su cuenta
 scripts/extraer-logo.py  Recorta los logos del mockup y genera los iconos
 ```
 
