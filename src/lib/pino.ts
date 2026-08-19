@@ -13,9 +13,10 @@
  * total se vuelve a sumar a partir de las celdas, y así los porcentajes cuadran
  * siempre entre sí, sea cual sea el filtro puesto.
  *
- * Los tipos de madera y los clientes **no están escritos aquí**: se descubren
- * leyendo la cabecera del CSV. Añadir un cliente nuevo a la hoja no obliga a
- * tocar el código.
+ * Los clientes y los tipos de madera salen de la cabecera del CSV, no de una
+ * lista escrita aquí: añadir un cliente —o un tipo nuevo— a la hoja no obliga a
+ * tocar el código. Tampoco hace falta que la hoja traiga los totales: se suman
+ * desde el detalle, que es lo único que permite repartir por cliente.
  */
 
 import {
@@ -103,6 +104,14 @@ const ETIQUETAS_CLIENTE: Record<string, string> = {
   ecos_largos: 'Ecos Largos',
   rodriguez: 'Rodríguez',
   lamelas: 'Lamelas',
+  costa_iberica: 'Costa Ibérica',
+  clamadeiras: 'Clamadeiras',
+  euromadeira: 'Euromadeira',
+  unimadeiras: 'Unimadeiras',
+
+  // Como se escribían en las primeras hojas. Se quedan para que los enlaces
+  // repartidos entonces —que llevan el CSV de aquel día dentro— sigan
+  // enseñando nombres y no identificadores.
   claradeiras: 'Claradeiras',
   europadeira: 'Europadeira',
   unidadeiras: 'Unidadeiras',
@@ -129,23 +138,100 @@ export const etiquetaCliente = (id: string) => ETIQUETAS_CLIENTE[id] ?? titular(
 // ---------------------------------------------------------------------------
 
 /**
- * Los tipos de madera se deducen de las columnas `total_<tipo>_calculado`, y se
- * quedan sólo los que además tienen columnas de detalle `<tipo>_<cliente>`. Así
- * `total_pino_calculado` —que es el gran total y no un tipo— se cae solo, sin
- * necesidad de tenerlo escrito en una lista negra.
+ * De dónde salen los tipos de madera. Dos vías, y en este orden:
+ *
+ * 1. **Los que ya conocemos por su nombre** —los de `ETIQUETAS_TIPO`— se
+ *    reconocen, no se deducen. Es lo que evita que un mes en el que la rolla
+ *    gorda sólo tenga un cliente se lea «rolla» + «gorda castro».
+ * 2. **El resto se deduce de la forma de la cabecera**, mirando dónde se abren
+ *    los nombres en abanico:
+ *
+ *        puntal_viana  puntal_finsa  puntal_kronospan  -> `puntal` se abre en tres
+ *        rolla_gorda_castro  rolla_gorda_lamelas       -> `rolla` sólo sigue por
+ *                                                         `gorda`; el corte va
+ *                                                         detrás de `rolla_gorda`
+ *
+ *    Se baja mientras el nombre no tenga más que un camino por delante y se
+ *    para en cuanto se abre o en cuanto algún cliente termina ahí. Como el
+ *    último trozo no se consume nunca, un `tabla_costa_iberica` solitario se
+ *    lee «tabla» + «costa ibérica», y no «tabla costa» + «ibérica».
+ *
+ * Lo que **no** hace falta para nada es que la hoja traiga columnas de totales:
+ * los totales son justo lo que sobra, porque el programa los suma. Una hoja que
+ * los lleve se entra igual, y si no cuadran con el detalle se avisa.
  */
-function tiposDeLaCabecera(cabeceras: string[]): string[] {
-  const candidatos = cabeceras
-    .map((cabecera) => /^total_(.+)_calculado$/.exec(cabecera)?.[1])
-    .filter((id): id is string => Boolean(id));
+const METADATOS = ['anio', 'mes', 'notas'];
 
-  return [...new Set(candidatos)].filter((id) =>
-    cabeceras.some(
-      (cabecera) =>
-        cabecera.startsWith(`${id}_`) &&
-        !cabecera.startsWith('total_') &&
-        !cabecera.startsWith('porcentaje_'),
-    ),
+/** Las columnas que llevan toneladas, sin los totales ni los porcentajes. */
+function esDetalle(cabecera: string): boolean {
+  return (
+    !METADATOS.includes(cabecera) &&
+    !cabecera.startsWith('total_') &&
+    !cabecera.startsWith('porcentaje_') &&
+    cabecera.includes('_')
+  );
+}
+
+/** Lo que cuelga de un nombre a medio leer: cuántos acaban ahí y por dónde sigue. */
+function ramas(sufijos: string[][]) {
+  let hojas = 0;
+  const grupos = new Map<string, string[][]>();
+
+  for (const sufijo of sufijos) {
+    if (sufijo.length <= 1) {
+      hojas += 1;
+      continue;
+    }
+    const grupo = grupos.get(sufijo[0]) ?? [];
+    grupo.push(sufijo.slice(1));
+    grupos.set(sufijo[0], grupo);
+  }
+
+  return { hojas, grupos, caminos: hojas + grupos.size };
+}
+
+/** Los tipos que salen de mirar por dónde se abre la cabecera. */
+function tiposDeducidos(columnas: string[]): string[] {
+  const tipos: string[] = [];
+
+  function bajar(prefijo: string[], sufijos: string[][]) {
+    const { hojas, grupos } = ramas(sufijos);
+
+    if (prefijo.length > 0) {
+      const [unico] = [...grupos.values()];
+      // El nombre del tipo sigue sólo si no hay más que un camino y lo que hay
+      // detrás se abre de verdad: si no, lo que queda es el nombre del cliente.
+      const sigue = hojas === 0 && grupos.size === 1 && ramas(unico).caminos > 1;
+      if (!sigue) {
+        tipos.push(prefijo.join('_'));
+        return;
+      }
+    }
+
+    for (const [cabeza, resto] of grupos) bajar([...prefijo, cabeza], resto);
+  }
+
+  bajar([], columnas.map((columna) => columna.split('_')));
+  return tipos;
+}
+
+function tiposDeLaCabecera(cabeceras: string[]): string[] {
+  const detalle = cabeceras.filter(esDetalle);
+  const empieza = (columna: string, tipo: string) => columna.startsWith(`${tipo}_`);
+
+  const conocidos = Object.keys(ETIQUETAS_TIPO).filter((tipo) =>
+    detalle.some((columna) => empieza(columna, tipo)),
+  );
+  const porDeducir = detalle.filter(
+    (columna) => !conocidos.some((tipo) => empieza(columna, tipo)),
+  );
+
+  // Se devuelven en el orden en que aparecen en la hoja: es el que ha elegido
+  // quien la mantiene y el que se verá en los filtros y en la matriz.
+  return [...new Set([...conocidos, ...tiposDeducidos(porDeducir)])].sort(
+    (a, b) =>
+      detalle.findIndex((columna) => empieza(columna, a)) -
+      detalle.findIndex((columna) => empieza(columna, b)),
   );
 }
 
@@ -159,7 +245,7 @@ function columnasDeDetalle(cabeceras: string[], tipos: string[]): Columna[] {
   const columnas: Columna[] = [];
 
   cabeceras.forEach((cabecera, indice) => {
-    if (cabecera.startsWith('total_') || cabecera.startsWith('porcentaje_')) return;
+    if (!esDetalle(cabecera)) return;
 
     // Gana el prefijo más largo, por si algún día un tipo es prefijo de otro.
     const tipo = tipos
@@ -192,8 +278,8 @@ export function parsePinoCsv(csv: string): PinoDataset {
 
   if (columnas.length === 0) {
     throw new Error(
-      'No se han encontrado columnas de cliente. Se esperan columnas del tipo ' +
-        '«puntal_finsa» junto a su «total_puntal_calculado».',
+      'No se han encontrado columnas de cliente. Se esperan columnas con el tipo de ' +
+        'madera por delante, del estilo de «puntal_finsa» o «rolla_gorda_lamelas».',
     );
   }
 

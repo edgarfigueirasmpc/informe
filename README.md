@@ -67,20 +67,28 @@ genera el enlace compartible.
 
 Necesita las columnas `anio` y `mes`, y una columna por cada cruce de tipo de
 madera y cliente, con el tipo por delante: `puntal_finsa`, `canter_tome`,
-`rolla_gorda_lamelas`. **Los tipos y los clientes no están escritos en el
-código**: se deducen de la cabecera. Un tipo es todo aquello que tenga una
-columna `total_<tipo>_calculado` y, además, columnas de detalle propias —así
-`total_pino_calculado`, que es el gran total, se descarta solo—. Añadir un
-cliente a la hoja no obliga a tocar nada.
+`rolla_gorda_lamelas`. Nada más: **las columnas de totales y de porcentajes
+sobran**, porque todo se suma desde el detalle, que es lo único que permite
+repartir por cliente. Si la hoja las trae se leen igual, y el total del mes se
+usa sólo para avisar en pantalla cuando no cuadra con la suma del detalle —que
+es lo que pasa en cuanto se añade un cliente y se olvida rehacer la fórmula—.
 
-Los totales y los porcentajes que trae la hoja no se usan para calcular: todo
-se vuelve a sumar desde las celdas de detalle, que es lo único que permite
-repartir por cliente. El `total_pino_calculado` sí se lee, pero sólo para
-avisar en pantalla si no cuadra con la suma del detalle. Las columnas
-`porcentaje_*` se ignoran, y `notas` se enseña junto al mes al que pertenece.
+**Ni los tipos ni los clientes están escritos en el código.** Los tipos que la
+aplicación ya conoce por su nombre se reconocen; cualquier otro se deduce de la
+forma de la cabecera, mirando dónde se abren los nombres en abanico: `puntal`
+se abre en cuatro clientes y ahí está el corte, mientras que `rolla` sólo
+continúa por `gorda`, así que el tipo es `rolla_gorda`. El último trozo no se
+consume nunca, de modo que un `tabla_costa_iberica` solitario se lee «tabla» +
+«Costa Ibérica». Añadir un cliente —o un tipo nuevo— a la hoja no obliga a
+tocar nada.
 
-`canter_ecos_largos` y `rolla_gorda_ecos` son el mismo cliente —Ecos Largos, con
-«canter» y «rolla gorda» como tipos de madera—, así que se agrupan. Las filas de
+Los nombres bonitos (`tome` → Tomé, `costa_iberica` → Costa Ibérica) salen de
+una tabla en [`src/lib/pino.ts`](src/lib/pino.ts); lo que no esté en ella se
+enseña con la primera letra en mayúscula. Ahí vive también el caso de
+`rolla_gorda_ecos`, abreviatura del mismo Ecos Largos de `canter_ecos_largos`:
+«canter» y «rolla gorda» son tipos de madera, no apellidos.
+
+La columna `notas` se enseña junto al mes al que pertenece, y las filas de
 meses futuros, en blanco, son huecos y no cuentan como ceros.
 
 ### Los cálculos
