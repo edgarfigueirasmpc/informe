@@ -72,8 +72,10 @@ export type PinoBase = 'tipo' | 'cliente' | 'total';
 
 export interface PinoOptions {
   aniosVisibles: number[];
-  tipoFoco: string | null;
-  clienteFoco: string | null;
+  /** Las maderas elegidas. Vacío quiere decir «todas», no «ninguna». */
+  tiposFoco: string[];
+  /** Los clientes elegidos. Vacío quiere decir «todos». */
+  clientesFoco: string[];
   mesFoco: PinoMes | null;
   base: PinoBase;
 }
@@ -132,6 +134,12 @@ const ALIAS_CLIENTE: Record<string, string> = { ecos: 'ecos_largos' };
 function titular(id: string): string {
   const texto = id.replace(/_/g, ' ');
   return texto.charAt(0).toLocaleUpperCase('es') + texto.slice(1);
+}
+
+/** «Puntal», «Puntal y Canter», «Puntal, Canter y Rolla gorda». */
+export function enumerar(nombres: string[]): string {
+  if (nombres.length <= 1) return nombres[0] ?? '';
+  return `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`;
 }
 
 export const etiquetaTipo = (id: string) => ETIQUETAS_TIPO[id] ?? titular(id);
@@ -360,10 +368,18 @@ export function parsePinoCsv(csv: string): PinoDataset {
 // caminos distintos.
 // ---------------------------------------------------------------------------
 
+/**
+ * Qué parte de la matriz se mira. Una lista vacía —o ausente— no filtra nada:
+ * es la diferencia entre «no he elegido madera» y «he elegido ninguna», y si no
+ * se distinguieran, abrir la sección enseñaría cero toneladas.
+ */
 export interface PinoFiltro {
-  tipo?: string | null;
-  cliente?: string | null;
+  tipos?: string[];
+  clientes?: string[];
 }
+
+const admite = (elegidos: string[] | undefined, valor: string) =>
+  !elegidos || elegidos.length === 0 || elegidos.includes(valor);
 
 export interface PinoResumen {
   total: number;
@@ -378,10 +394,10 @@ export function resumir(registros: PinoRecord[], filtro: PinoFiltro = {}): PinoR
 
   for (const registro of registros) {
     for (const [tipo, porCliente] of Object.entries(registro.tn)) {
-      if (filtro.tipo && tipo !== filtro.tipo) continue;
+      if (!admite(filtro.tipos, tipo)) continue;
 
       for (const [cliente, valor] of Object.entries(porCliente)) {
-        if (filtro.cliente && cliente !== filtro.cliente) continue;
+        if (!admite(filtro.clientes, cliente)) continue;
 
         resumen.total += valor;
         resumen.porTipo[tipo] = (resumen.porTipo[tipo] ?? 0) + valor;
@@ -414,8 +430,8 @@ export function cuota(parte: number, total: number): number | null {
 export function defaultPinoOptions(anios: number[]): PinoOptions {
   return {
     aniosVisibles: anios.slice(-3),
-    tipoFoco: null,
-    clienteFoco: null,
+    tiposFoco: [],
+    clientesFoco: [],
     mesFoco: null,
     base: 'tipo',
   };
@@ -431,8 +447,8 @@ export function sanearOpciones(dataset: PinoDataset, options: PinoOptions): Pino
   const aniosVisibles =
     visibles.length > 0 ? visibles : defaultPinoOptions(dataset.anios).aniosVisibles;
 
-  const conservado = <T extends { id: string }>(lista: T[], id: string | null) =>
-    id !== null && lista.some((elemento) => elemento.id === id) ? id : null;
+  const conservados = <T extends { id: string }>(lista: T[], elegidos: string[]) =>
+    elegidos.filter((id) => lista.some((elemento) => elemento.id === id));
 
   const mesFoco =
     options.mesFoco !== null &&
@@ -443,8 +459,8 @@ export function sanearOpciones(dataset: PinoDataset, options: PinoOptions): Pino
 
   return {
     aniosVisibles,
-    tipoFoco: conservado(dataset.tipos, options.tipoFoco),
-    clienteFoco: conservado(dataset.clientes, options.clienteFoco),
+    tiposFoco: conservados(dataset.tipos, options.tiposFoco),
+    clientesFoco: conservados(dataset.clientes, options.clientesFoco),
     mesFoco,
     base: options.base,
   };

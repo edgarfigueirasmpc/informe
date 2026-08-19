@@ -4,6 +4,7 @@ import { cuotaPct, tn, tnRedondo } from '../lib/format';
 import {
   cuota,
   esMes,
+  enumerar,
   etiquetaCliente,
   etiquetaTipo,
   mismoMes,
@@ -90,42 +91,41 @@ export interface Serie {
 }
 
 /**
- * De qué se compone cada barra. El desglose sigue al foco en vez de pedir otro
- * mando: sin foco se apilan los tipos de madera; con un tipo elegido, sus
- * clientes; con un cliente elegido, las maderas que se le mandaron.
+ * De qué se compone cada barra. El desglose sigue a lo elegido en vez de pedir
+ * otro mando: con una sola madera en juego se apilan sus clientes, y en
+ * cualquier otro caso se apilan las maderas. Así elegir dos maderas las compara
+ * entre sí, y elegir una la abre por dentro.
  */
 export function seriesDe(
   dataset: PinoDataset,
-  tipoFoco: string | null,
-  clienteFoco: string | null,
+  tiposFoco: string[],
+  clientesFoco: string[],
 ): Serie[] {
-  if (tipoFoco && clienteFoco) {
-    return [
-      {
-        clave: `${tipoFoco}|${clienteFoco}`,
-        label: `${etiquetaTipo(tipoFoco)} · ${etiquetaCliente(clienteFoco)}`,
-        color: colorDeTipo(dataset, tipoFoco),
-        filtro: { tipo: tipoFoco, cliente: clienteFoco },
-      },
-    ];
-  }
+  const tipos =
+    tiposFoco.length > 0 ? dataset.tipos.filter((tipo) => tiposFoco.includes(tipo.id)) : dataset.tipos;
 
-  if (tipoFoco) {
-    const clientes = dataset.clientesPorTipo[tipoFoco] ?? [];
-    const color = colorDeTipo(dataset, tipoFoco);
-    return clientes.map((cliente, indice) => ({
+  if (tipos.length === 1) {
+    const tipo = tipos[0].id;
+    const color = colorDeTipo(dataset, tipo);
+    const hermanos = dataset.clientesPorTipo[tipo] ?? [];
+    const visibles =
+      clientesFoco.length > 0 ? hermanos.filter((cliente) => clientesFoco.includes(cliente)) : hermanos;
+
+    return visibles.map((cliente) => ({
       clave: cliente,
       label: etiquetaCliente(cliente),
-      color: pasoDeRampa(color, indice, clientes.length),
-      filtro: { tipo: tipoFoco, cliente },
+      // El escalón sale del sitio que ocupa entre todos los clientes de esa
+      // madera, no entre los visibles: al filtrar, cada uno conserva su tono.
+      color: pasoDeRampa(color, hermanos.indexOf(cliente), hermanos.length),
+      filtro: { tipos: [tipo], clientes: [cliente] },
     }));
   }
 
-  return dataset.tipos.map((tipo) => ({
+  return tipos.map((tipo) => ({
     clave: tipo.id,
     label: tipo.label,
     color: colorDeTipo(dataset, tipo.id),
-    filtro: clienteFoco ? { tipo: tipo.id, cliente: clienteFoco } : { tipo: tipo.id },
+    filtro: { tipos: [tipo.id], clientes: clientesFoco },
   }));
 }
 
@@ -679,9 +679,9 @@ export function PinoQuesito({
 interface RankingProps {
   dataset: PinoDataset;
   registros: PinoRecord[];
-  tipoFoco: string | null;
-  clienteFoco: string | null;
-  onCliente: (cliente: string | null) => void;
+  tiposFoco: string[];
+  clientesFoco: string[];
+  onCliente: (cliente: string) => void;
 }
 
 /**
@@ -690,14 +690,16 @@ interface RankingProps {
  * toneladas y los tramos, el reparto por madera, con sólo tres colores en
  * juego para que se pueda comparar de arriba abajo sin leyenda intermedia.
  */
-export function PinoRanking({ dataset, registros, tipoFoco, clienteFoco, onCliente }: RankingProps) {
-  const resumen = useMemo(() => resumir(registros, { tipo: tipoFoco }), [registros, tipoFoco]);
+export function PinoRanking({ dataset, registros, tiposFoco, clientesFoco, onCliente }: RankingProps) {
+  const resumen = useMemo(() => resumir(registros, { tipos: tiposFoco }), [registros, tiposFoco]);
+  const tiposVisibles =
+    tiposFoco.length > 0 ? dataset.tipos.filter((tipo) => tiposFoco.includes(tipo.id)) : dataset.tipos;
 
   const filas = dataset.clientes
     .map((cliente) => ({
       ...cliente,
       total: resumen.porCliente[cliente.id] ?? 0,
-      tramos: dataset.tipos
+      tramos: tiposVisibles
         .map((tipo) => ({
           tipo,
           valor: resumen.matriz[tipo.id]?.[cliente.id] ?? 0,
@@ -718,12 +720,13 @@ export function PinoRanking({ dataset, registros, tipoFoco, clienteFoco, onClien
         <div>
           <p className="eyebrow">Reparto por cliente</p>
           <h3 className="pino__panel-titulo">
-            Quién se lo llevó{tipoFoco ? ` · sólo ${etiquetaTipo(tipoFoco)}` : ''}
+            Quién se lo llevó
+            {tiposFoco.length > 0 && ` · sólo ${enumerar(tiposFoco.map(etiquetaTipo))}`}
           </h3>
         </div>
-        {!tipoFoco && (
+        {tiposVisibles.length > 1 && (
           <ul className="pino__leyenda">
-            {dataset.tipos.map((tipo) => (
+            {tiposVisibles.map((tipo) => (
               <li key={tipo.id} className="pino__leyenda-item">
                 <span
                   className="pino__muestra"
@@ -741,19 +744,19 @@ export function PinoRanking({ dataset, registros, tipoFoco, clienteFoco, onClien
           <li
             key={fila.id}
             className={`pino__ranking-fila ${
-              clienteFoco === fila.id ? 'pino__ranking-fila--activa' : ''
+              clientesFoco.includes(fila.id) ? 'pino__ranking-fila--activa' : ''
             }`}
           >
             <button
               className="pino__ranking-nombre"
               type="button"
-              aria-pressed={clienteFoco === fila.id}
+              aria-pressed={clientesFoco.includes(fila.id)}
               title={
-                clienteFoco === fila.id
-                  ? `Quitar el filtro de ${fila.label}`
-                  : `Ver sólo ${fila.label}`
+                clientesFoco.includes(fila.id)
+                  ? `Quitar a ${fila.label} de la selección`
+                  : `Añadir a ${fila.label} a la selección`
               }
-              onClick={() => onCliente(clienteFoco === fila.id ? null : fila.id)}
+              onClick={() => onCliente(fila.id)}
             >
               {fila.label}
             </button>
@@ -798,8 +801,8 @@ interface MatrizProps {
   dataset: PinoDataset;
   registros: PinoRecord[];
   base: PinoBase;
-  tipoFoco: string | null;
-  clienteFoco: string | null;
+  tiposFoco: string[];
+  clientesFoco: string[];
   onBase: (base: PinoBase) => void;
 }
 
@@ -807,8 +810,8 @@ export function PinoMatriz({
   dataset,
   registros,
   base,
-  tipoFoco,
-  clienteFoco,
+  tiposFoco,
+  clientesFoco,
   onBase,
 }: MatrizProps) {
   const resumen = useMemo(() => resumir(registros), [registros]);
@@ -834,7 +837,7 @@ export function PinoMatriz({
           <h3 className="pino__panel-titulo">Cada tipo de madera y cada cliente</h3>
           <p className="pino__panel-nota">
             {TEXTO_BASE[base]}
-            {(tipoFoco || clienteFoco) && (
+            {(tiposFoco.length > 0 || clientesFoco.length > 0) && (
               // Recortarla dejaría una sola columna o una sola fila, que es
               // justo el número que ya dan los paneles de arriba.
               <> El cruce se enseña entero: lo elegido va resaltado, no aislado.</>
@@ -869,7 +872,7 @@ export function PinoMatriz({
                 <th
                   key={tipo.id}
                   scope="col"
-                  className={`num ${tipoFoco === tipo.id ? 'pino__celda--foco' : ''}`}
+                  className={`num ${tiposFoco.includes(tipo.id) ? 'pino__celda--foco' : ''}`}
                 >
                   <span
                     className="pino__muestra"
@@ -888,7 +891,7 @@ export function PinoMatriz({
             {clientes.map((cliente) => (
               <tr
                 key={cliente.id}
-                className={clienteFoco === cliente.id ? 'pino__fila--foco' : ''}
+                className={clientesFoco.includes(cliente.id) ? 'pino__fila--foco' : ''}
               >
                 <th scope="row">{cliente.label}</th>
 

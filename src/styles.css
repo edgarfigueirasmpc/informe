@@ -2100,19 +2100,28 @@ td:last-child .editable {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-color) 20%, transparent);
 }
 
-.pino__select {
-  min-width: 12rem;
-  padding: 0.42rem 2rem 0.42rem 0.65rem;
-  border: var(--rule) solid var(--line-strong);
-  border-radius: 2px;
-  background: var(--surface);
-  font-size: 11px;
-  cursor: pointer;
+/* Los clientes son muchos y van a su propia línea, debajo de todo lo demás. */
+.pino__filtro-grupo--clientes {
+  flex-basis: 100%;
+  padding-top: 0.9rem;
+  border-top: var(--rule) solid var(--line);
 }
 
-.pino__select:focus {
-  outline: 2px solid var(--azul);
-  outline-offset: 1px;
+/* Cuántos hay elegidos, para no tener que contar fichas encendidas. */
+.pino__cuenta {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.45rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--naranja);
+  color: var(--paper);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0;
+  vertical-align: 1px;
 }
 
 /* --- Cifras del ámbito ------------------------------------------------------ */
@@ -2758,6 +2767,10 @@ td:last-child .editable {
     margin-left: 0;
     align-items: flex-start;
     text-align: left;
+  }
+
+  .pino__filtro-grupo--clientes {
+    padding-top: 0.7rem;
   }
 
   .pino__quesito-cuerpo {

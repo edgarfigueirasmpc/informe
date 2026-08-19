@@ -4,7 +4,10 @@ import { cuotaPct, tn, tnRedondo } from '../lib/format';
 import {
   cuota,
   defaultPinoOptions,
+  enumerar,
   esMes,
+  etiquetaCliente,
+  etiquetaTipo,
   parsePinoCsv,
   resumir,
   sanearOpciones,
@@ -192,8 +195,8 @@ interface PanelProps {
 }
 
 function PinoPanel({ dataset, options, onOptions }: PanelProps) {
-  const { aniosVisibles, tipoFoco, clienteFoco, mesFoco, base } = options;
-  const filtro = { tipo: tipoFoco, cliente: clienteFoco };
+  const { aniosVisibles, tiposFoco, clientesFoco, mesFoco, base } = options;
+  const filtro = { tipos: tiposFoco, clientes: clientesFoco };
 
   const { anios, registros } = useMemo(() => {
     const visibles = dataset.anios.filter((anio) => aniosVisibles.includes(anio));
@@ -210,11 +213,15 @@ function PinoPanel({ dataset, options, onOptions }: PanelProps) {
     : registros;
 
   const series = useMemo(
-    () => seriesDe(dataset, tipoFoco, clienteFoco),
-    [dataset, tipoFoco, clienteFoco],
+    () => seriesDe(dataset, tiposFoco, clientesFoco),
+    [dataset, tiposFoco, clientesFoco],
   );
 
   const cambiar = (parcial: Partial<PinoOptions>) => onOptions({ ...options, ...parcial });
+
+  /** Añade o quita de una selección. Vaciarla es volver a «todos». */
+  const alternar = (seleccion: string[], id: string) =>
+    seleccion.includes(id) ? seleccion.filter((actual) => actual !== id) : [...seleccion, id];
 
   function alternarAnio(anio: number) {
     const siguientes = aniosVisibles.includes(anio)
@@ -239,9 +246,11 @@ function PinoPanel({ dataset, options, onOptions }: PanelProps) {
       ? String(anios[0])
       : `${anios[0]}–${anios[anios.length - 1]}`;
 
+  const etiquetasTipo = tiposFoco.map((id) => etiquetaTipo(id));
+  const etiquetasCliente = clientesFoco.map((id) => etiquetaCliente(id));
   const nombreFiltro = [
-    tipoFoco ? dataset.tipos.find((tipo) => tipo.id === tipoFoco)?.label : null,
-    clienteFoco ? dataset.clientes.find((cliente) => cliente.id === clienteFoco)?.label : null,
+    etiquetasTipo.length > 0 ? enumerar(etiquetasTipo) : null,
+    etiquetasCliente.length > 0 ? enumerar(etiquetasCliente) : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -260,6 +269,8 @@ function PinoPanel({ dataset, options, onOptions }: PanelProps) {
         dataset={dataset}
         options={options}
         onAnio={alternarAnio}
+        onTipo={(id) => cambiar({ tiposFoco: alternar(tiposFoco, id) })}
+        onCliente={(id) => cambiar({ clientesFoco: alternar(clientesFoco, id) })}
         onCambio={cambiar}
         nombreAmbito={nombreAmbito}
       />
@@ -290,23 +301,24 @@ function PinoPanel({ dataset, options, onOptions }: PanelProps) {
         ambito={ambito}
         options={options}
         nombreAmbito={nombreAmbito}
-        onCambio={cambiar}
+        onTipo={(id) => cambiar({ tiposFoco: alternar(tiposFoco, id) })}
+        onCliente={(id) => cambiar({ clientesFoco: alternar(clientesFoco, id) })}
       />
 
       <PinoRanking
         dataset={dataset}
         registros={ambito}
-        tipoFoco={tipoFoco}
-        clienteFoco={clienteFoco}
-        onCliente={(cliente) => cambiar({ clienteFoco: cliente })}
+        tiposFoco={tiposFoco}
+        clientesFoco={clientesFoco}
+        onCliente={(cliente) => cambiar({ clientesFoco: alternar(clientesFoco, cliente) })}
       />
 
       <PinoMatriz
         dataset={dataset}
         registros={ambito}
         base={base}
-        tipoFoco={tipoFoco}
-        clienteFoco={clienteFoco}
+        tiposFoco={tiposFoco}
+        clientesFoco={clientesFoco}
         onBase={(nueva: PinoBase) => cambiar({ base: nueva })}
       />
 
@@ -353,13 +365,28 @@ interface FiltrosProps {
   dataset: PinoDataset;
   options: PinoOptions;
   onAnio: (anio: number) => void;
+  onTipo: (tipo: string) => void;
+  onCliente: (cliente: string) => void;
   onCambio: (parcial: Partial<PinoOptions>) => void;
   nombreAmbito: string;
 }
 
-function Filtros({ dataset, options, onAnio, onCambio, nombreAmbito }: FiltrosProps) {
-  const { aniosVisibles, tipoFoco, clienteFoco, mesFoco } = options;
-  const hayFiltro = tipoFoco !== null || clienteFoco !== null || mesFoco !== null;
+/**
+ * Una sola fila de mandos para todos los paneles. Las maderas y los clientes se
+ * eligen a puñados —dos maderas se comparan entre sí, tres clientes se miran
+ * juntos—, y no elegir ninguno significa verlos todos, que es como se abre.
+ */
+function Filtros({
+  dataset,
+  options,
+  onAnio,
+  onTipo,
+  onCliente,
+  onCambio,
+  nombreAmbito,
+}: FiltrosProps) {
+  const { aniosVisibles, tiposFoco, clientesFoco, mesFoco } = options;
+  const hayFiltro = tiposFoco.length > 0 || clientesFoco.length > 0 || mesFoco !== null;
 
   return (
     <div className="pino__filtros no-imprimir" aria-label="Filtros del desglose">
@@ -384,18 +411,21 @@ function Filtros({ dataset, options, onAnio, onCambio, nombreAmbito }: FiltrosPr
       </div>
 
       <div className="pino__filtro-grupo">
-        <span className="eyebrow">Tipo de madera</span>
+        <span className="eyebrow">
+          Tipo de madera
+          {tiposFoco.length > 0 && <span className="pino__cuenta">{tiposFoco.length}</span>}
+        </span>
         <div className="pino__chips">
           <button
-            className={`pino__chip ${tipoFoco === null ? 'pino__chip--activo' : ''}`}
+            className={`pino__chip ${tiposFoco.length === 0 ? 'pino__chip--activo' : ''}`}
             type="button"
-            aria-pressed={tipoFoco === null}
-            onClick={() => onCambio({ tipoFoco: null })}
+            aria-pressed={tiposFoco.length === 0}
+            onClick={() => onCambio({ tiposFoco: [] })}
           >
-            Todos
+            Todas
           </button>
           {dataset.tipos.map((tipo) => {
-            const activo = tipoFoco === tipo.id;
+            const activo = tiposFoco.includes(tipo.id);
             return (
               <button
                 key={tipo.id}
@@ -403,31 +433,18 @@ function Filtros({ dataset, options, onAnio, onCambio, nombreAmbito }: FiltrosPr
                 type="button"
                 aria-pressed={activo}
                 style={{ '--chip-color': colorDeTipo(dataset, tipo.id) } as CSSProperties}
-                onClick={() => onCambio({ tipoFoco: activo ? null : tipo.id })}
+                onClick={() => onTipo(tipo.id)}
               >
-                <span className="pino__muestra" style={{ background: colorDeTipo(dataset, tipo.id) }} />
+                <span
+                  className="pino__muestra"
+                  style={{ background: colorDeTipo(dataset, tipo.id) }}
+                />
                 {tipo.label}
               </button>
             );
           })}
         </div>
       </div>
-
-      <label className="pino__filtro-grupo">
-        <span className="eyebrow">Cliente</span>
-        <select
-          className="pino__select"
-          value={clienteFoco ?? ''}
-          onChange={(evento) => onCambio({ clienteFoco: evento.target.value || null })}
-        >
-          <option value="">Todos los clientes</option>
-          {dataset.clientes.map((cliente) => (
-            <option key={cliente.id} value={cliente.id}>
-              {cliente.label}
-            </option>
-          ))}
-        </select>
-      </label>
 
       <div className="pino__filtro-grupo pino__filtro-grupo--ambito">
         <span className="eyebrow">Viendo</span>
@@ -437,11 +454,42 @@ function Filtros({ dataset, options, onAnio, onCambio, nombreAmbito }: FiltrosPr
             <button
               className="linkish"
               type="button"
-              onClick={() => onCambio({ tipoFoco: null, clienteFoco: null, mesFoco: null })}
+              onClick={() => onCambio({ tiposFoco: [], clientesFoco: [], mesFoco: null })}
             >
               Quitar filtros
             </button>
           )}
+        </div>
+      </div>
+
+      <div className="pino__filtro-grupo pino__filtro-grupo--clientes">
+        <span className="eyebrow">
+          Clientes
+          {clientesFoco.length > 0 && <span className="pino__cuenta">{clientesFoco.length}</span>}
+        </span>
+        <div className="pino__chips">
+          <button
+            className={`pino__chip ${clientesFoco.length === 0 ? 'pino__chip--activo' : ''}`}
+            type="button"
+            aria-pressed={clientesFoco.length === 0}
+            onClick={() => onCambio({ clientesFoco: [] })}
+          >
+            Todos
+          </button>
+          {dataset.clientes.map((cliente) => {
+            const activo = clientesFoco.includes(cliente.id);
+            return (
+              <button
+                key={cliente.id}
+                className={`pino__chip ${activo ? 'pino__chip--activo' : ''}`}
+                type="button"
+                aria-pressed={activo}
+                onClick={() => onCliente(cliente.id)}
+              >
+                {cliente.label}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -475,17 +523,19 @@ function Cifras({
   nombreAmbito,
   nombreFiltro,
 }: CifrasProps) {
-  const { tipoFoco, clienteFoco, mesFoco } = options;
-  const hayFiltro = tipoFoco !== null || clienteFoco !== null;
+  const { tiposFoco, clientesFoco, mesFoco } = options;
+  const hayFiltro = tiposFoco.length > 0 || clientesFoco.length > 0;
 
   const resumen = useMemo(
-    () => resumir(ambito, { tipo: tipoFoco, cliente: clienteFoco }),
-    [ambito, tipoFoco, clienteFoco],
+    () => resumir(ambito, { tipos: tiposFoco, clientes: clientesFoco }),
+    [ambito, tiposFoco, clientesFoco],
   );
 
   // La cuarta casilla mira al eje que no se ha fijado: con un cliente elegido
   // interesa qué madera se le manda; sin él, quién se lleva más.
-  const lider = clienteFoco
+  // Con un cliente solo, lo que falta por saber es qué madera se le manda; en
+  // cuanto hay varios —o ninguno—, la pregunta vuelve a ser quién se lleva más.
+  const lider = clientesFoco.length === 1
     ? Object.entries(resumen.porTipo)
         .sort((a, b) => b[1] - a[1])
         .map(([id, valor]) => ({
@@ -501,8 +551,8 @@ function Cifras({
 
   const mesesConDatos = ambito.length;
   const mejor = useMemo(
-    () => mejorMes(registros, { tipo: tipoFoco, cliente: clienteFoco }),
-    [registros, tipoFoco, clienteFoco],
+    () => mejorMes(registros, { tipos: tiposFoco, clientes: clientesFoco }),
+    [registros, tiposFoco, clientesFoco],
   );
 
   return (
@@ -549,7 +599,7 @@ function Cifras({
       )}
 
       <Casilla
-        etiqueta={clienteFoco ? 'Su madera principal' : 'Mayor cliente'}
+        etiqueta={clientesFoco.length === 1 ? 'Su madera principal' : 'Mayor cliente'}
         valor={lider?.nombre ?? '—'}
         pie={
           lider
@@ -562,7 +612,7 @@ function Cifras({
   );
 }
 
-function mejorMes(registros: PinoRecord[], filtro: { tipo: string | null; cliente: string | null }) {
+function mejorMes(registros: PinoRecord[], filtro: { tipos: string[]; clientes: string[] }) {
   const mejor = registros
     .map((registro) => ({ registro, valor: toneladas([registro], filtro) }))
     .sort((a, b) => b.valor - a.valor)[0];
@@ -615,24 +665,25 @@ interface QuesitosProps {
   ambito: PinoRecord[];
   options: PinoOptions;
   nombreAmbito: string;
-  onCambio: (parcial: Partial<PinoOptions>) => void;
+  onTipo: (tipo: string) => void;
+  onCliente: (cliente: string) => void;
 }
 
-function Quesitos({ dataset, ambito, options, nombreAmbito, onCambio }: QuesitosProps) {
-  const { tipoFoco, clienteFoco } = options;
+function Quesitos({ dataset, ambito, options, nombreAmbito, onTipo, onCliente }: QuesitosProps) {
+  const { tiposFoco, clientesFoco } = options;
 
   // El quesito de maderas enseña siempre las tres, aunque haya una elegida: si
   // se filtrara quedaría una porción del 100%, que no dice nada. Con foco, las
   // demás se apagan y se sigue viendo sobre qué parte del total se está.
-  const porTipo = useMemo(() => resumir(ambito, { cliente: clienteFoco }), [ambito, clienteFoco]);
-  const porCliente = useMemo(() => resumir(ambito, { tipo: tipoFoco }), [ambito, tipoFoco]);
+  const porTipo = useMemo(() => resumir(ambito, { clientes: clientesFoco }), [ambito, clientesFoco]);
+  const porCliente = useMemo(() => resumir(ambito, { tipos: tiposFoco }), [ambito, tiposFoco]);
 
   const sectoresTipo: Sector[] = dataset.tipos.map((tipo) => ({
     clave: tipo.id,
     label: tipo.label,
     valor: porTipo.porTipo[tipo.id] ?? 0,
     color: colorDeTipo(dataset, tipo.id),
-    tenue: tipoFoco !== null && tipoFoco !== tipo.id,
+    tenue: tiposFoco.length > 0 && !tiposFoco.includes(tipo.id),
   }));
 
   // Cada cliente se pinta con el tono de la madera que más le mandan, en el
@@ -659,39 +710,39 @@ function Quesitos({ dataset, ambito, options, nombreAmbito, onCambio }: Quesitos
           Math.max(0, hermanos.indexOf(cliente.id)),
           hermanos.length,
         ),
-        tenue: clienteFoco !== null && clienteFoco !== cliente.id,
+        tenue: clientesFoco.length > 0 && !clientesFoco.includes(cliente.id),
       };
     })
     .filter((sector) => sector.valor > 0)
     .sort((a, b) => b.valor - a.valor);
 
-  const tipoElegido = dataset.tipos.find((tipo) => tipo.id === tipoFoco);
-  const clienteElegido = dataset.clientes.find((cliente) => cliente.id === clienteFoco);
+  const maderasElegidas = enumerar(tiposFoco.map((id) => etiquetaTipo(id)));
+  const clientesElegidos = enumerar(clientesFoco.map((id) => etiquetaCliente(id)));
 
   return (
     <div className="pino__quesitos">
       <PinoQuesito
         titulo="Por tipo de madera"
         subtitulo={
-          clienteElegido
-            ? `Lo que se le mandó a ${clienteElegido.label} en ${nombreAmbito}`
+          clientesElegidos
+            ? `Lo que se le mandó a ${clientesElegidos} en ${nombreAmbito}`
             : `Todas las maderas de ${nombreAmbito}`
         }
         sectores={sectoresTipo}
         totalEtiqueta={`TN · ${nombreAmbito}`}
-        onElegir={(clave) => onCambio({ tipoFoco: tipoFoco === clave ? null : clave })}
+        onElegir={onTipo}
       />
 
       <PinoQuesito
         titulo="Por cliente"
         subtitulo={
-          tipoElegido
-            ? `Quién se llevó el ${tipoElegido.label.toLocaleLowerCase('es')} en ${nombreAmbito}`
+          maderasElegidas
+            ? `Quién se llevó ${maderasElegidas} en ${nombreAmbito}`
             : `Todas las maderas de ${nombreAmbito}`
         }
         sectores={sectoresCliente}
         totalEtiqueta={`TN · ${nombreAmbito}`}
-        onElegir={(clave) => onCambio({ clienteFoco: clienteFoco === clave ? null : clave })}
+        onElegir={onCliente}
       />
     </div>
   );

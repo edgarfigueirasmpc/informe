@@ -49,8 +49,8 @@ type PinoEmpaquetado = [
   csv: string,
   origen: string,
   aniosVisibles: number[],
-  tipoFoco: string | null,
-  clienteFoco: string | null,
+  tiposFoco: string[],
+  clientesFoco: string[],
   mesFoco: [anio: number, mesIndex: number] | null,
   base: PinoBase,
 ];
@@ -214,8 +214,8 @@ function empaquetarPino(pino: SharedPino): PinoEmpaquetado {
     pino.csv,
     pino.sourceName,
     options.aniosVisibles,
-    options.tipoFoco,
-    options.clienteFoco,
+    options.tiposFoco,
+    options.clientesFoco,
     options.mesFoco ? [options.mesFoco.anio, options.mesFoco.mesIndex] : null,
     options.base,
   ];
@@ -224,6 +224,18 @@ function empaquetarPino(pino: SharedPino): PinoEmpaquetado {
 /** Texto no vacío, o null: los identificadores en blanco no son un foco. */
 function idOpcional(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v : null;
+}
+
+/**
+ * La lista de lo elegido. Los enlaces de las primeras versiones traían aquí un
+ * solo identificador —o `null`— en vez de una lista, y siguen abriéndose: lo
+ * que llevaban dentro es exactamente una selección de uno.
+ */
+function listaDeIds(v: unknown): string[] {
+  const suelto = idOpcional(v);
+  if (suelto) return [suelto];
+  if (!esLista(v)) return [];
+  return v.filter((id): id is string => typeof id === 'string' && id.trim() !== '');
 }
 
 function desempaquetarPino(datos: unknown): SharedPino | null {
@@ -250,8 +262,8 @@ function desempaquetarPino(datos: unknown): SharedPino | null {
       aniosVisibles: esLista(datos[3])
         ? datos[3].filter((anio): anio is number => typeof anio === 'number' && Number.isFinite(anio))
         : [],
-      tipoFoco: idOpcional(datos[4]),
-      clienteFoco: idOpcional(datos[5]),
+      tiposFoco: listaDeIds(datos[4]),
+      clientesFoco: listaDeIds(datos[5]),
       mesFoco,
       base,
     },

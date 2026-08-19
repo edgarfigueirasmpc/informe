@@ -146,8 +146,8 @@ describe('pino por cliente compartido', () => {
     sourceName: 'datos_pino_porcliente.csv',
     options: {
       aniosVisibles: [2025, 2026],
-      tipoFoco: 'rolla_gorda',
-      clienteFoco: 'ecos_largos',
+      tiposFoco: ['rolla_gorda', 'eucalipto'],
+      clientesFoco: ['ecos_largos', 'viana'],
       mesFoco: { anio: 2026, mesIndex: 6 },
       base: 'cliente',
     },
@@ -162,9 +162,22 @@ describe('pino por cliente compartido', () => {
   it('vuelve sin foco cuando no había foco', async () => {
     const suelto: SharedPino = {
       ...pino,
-      options: { ...pino.options, tipoFoco: null, clienteFoco: null, mesFoco: null, base: 'tipo' },
+      options: { ...pino.options, tiposFoco: [], clientesFoco: [], mesFoco: null, base: 'tipo' },
     };
     expect(await descodificarPino(await codificarPino(suelto))).toEqual(suelto);
+  });
+
+  it('sigue abriendo los enlaces que llevaban un solo tipo y un solo cliente', async () => {
+    // Las primeras versiones guardaban aquí un identificador suelto en vez de
+    // una lista. Un enlace de entonces es una selección de uno.
+    const antiguo =
+      '0' +
+      btoa(
+        JSON.stringify([1, 'anio;mes\n', 'viejo.csv', [2026], 'puntal', 'finsa', null, 'tipo']),
+      );
+    const vuelta = await descodificarPino(antiguo);
+    expect(vuelta!.options.tiposFoco).toEqual(['puntal']);
+    expect(vuelta!.options.clientesFoco).toEqual(['finsa']);
   });
 
   it('rechaza cargas rotas y sanea los valores imposibles', async () => {
@@ -180,8 +193,8 @@ describe('pino por cliente compartido', () => {
       sourceName: 'pino-por-cliente.csv',
       options: {
         aniosVisibles: [2026],
-        tipoFoco: null,
-        clienteFoco: null,
+        tiposFoco: [],
+        clientesFoco: [],
         mesFoco: null,
         base: 'tipo',
       },

@@ -16,6 +16,8 @@ completo de tipo de madera × cliente de destino —los tres tipos de pino y el
 eucalipto— y deja consultarlo desde cualquiera de sus lados: qué parte de un
 tipo se llevó un cliente, qué reparto de maderas tuvo un cliente, qué peso tuvo
 un mes dentro de su año, con los años y los meses siempre a la vista a la vez.
+Las maderas y los clientes **se eligen a puñados**: dos maderas se comparan
+entre sí, tres clientes se miran juntos, y no elegir ninguno es verlos todos.
 
 No se publica ningún dato de ejemplo: las dos pestañas aparecen vacías hasta que
 el usuario carga su CSV. Una vez cargado, el CSV y los filtros se comprimen en

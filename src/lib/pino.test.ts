@@ -134,7 +134,7 @@ describe('pino por cliente: hojas sin columnas de totales', () => {
       'navigator_setubal',
       'bosques',
     ]);
-    expect(resumir(conEucalipto.registros, { cliente: 'viana' }).porTipo).toEqual({
+    expect(resumir(conEucalipto.registros, { clientes: ['viana'] }).porTipo).toEqual({
       puntal: 600,
       eucalipto: 100,
     });
@@ -187,28 +187,55 @@ describe('pino por cliente: agregación', () => {
   });
 
   it('reparte un tipo de madera entre sus clientes', () => {
-    const { total, porCliente } = resumir(registros, { tipo: 'puntal' });
+    const { total, porCliente } = resumir(registros, { tipos: ['puntal'] });
     expect(porCliente).toEqual({ viana: 900, finsa: 500 });
     expect(cuota(porCliente.finsa, total)).toBeCloseTo(500 / 1400);
   });
 
   it('reparte lo de un cliente entre los tipos que le fueron', () => {
-    const { total, porTipo } = resumir(registros, { cliente: 'ecos_largos' });
+    const { total, porTipo } = resumir(registros, { clientes: ['ecos_largos'] });
     expect(total).toBe(500);
     expect(porTipo).toEqual({ canter: 100, rolla_gorda: 400 });
   });
 
   it('cruza tipo y cliente a la vez', () => {
-    expect(toneladas(registros, { tipo: 'canter', cliente: 'ecos_largos' })).toBe(100);
-    expect(toneladas(registros, { tipo: 'canter', cliente: 'viana' })).toBe(0);
+    expect(toneladas(registros, { tipos: ['canter'], clientes: ['ecos_largos'] })).toBe(100);
+    expect(toneladas(registros, { tipos: ['canter'], clientes: ['viana'] })).toBe(0);
   });
 
   it('pesa un mes dentro de su año', () => {
     const enero = registros.filter((registro) => registro.mesIndex === 0);
     expect(cuota(toneladas(enero), toneladas(registros))).toBeCloseTo(1600 / 2100);
     expect(
-      cuota(toneladas(enero, { cliente: 'viana' }), toneladas(registros, { cliente: 'viana' })),
+      cuota(toneladas(enero, { clientes: ['viana'] }), toneladas(registros, { clientes: ['viana'] })),
     ).toBeCloseTo(600 / 900);
+  });
+
+  it('suma varias maderas a la vez sin contar nada dos veces', () => {
+    const dos = resumir(registros, { tipos: ['canter', 'rolla_gorda'] });
+    expect(dos.total).toBe(700);
+    expect(dos.porTipo).toEqual({ canter: 300, rolla_gorda: 400 });
+    expect(dos.total).toBe(
+      toneladas(registros, { tipos: ['canter'] }) + toneladas(registros, { tipos: ['rolla_gorda'] }),
+    );
+  });
+
+  it('suma varios clientes a la vez', () => {
+    expect(toneladas(registros, { clientes: ['viana', 'finsa'] })).toBe(1400);
+    expect(toneladas(registros, { clientes: ['viana', 'ecos_largos'] })).toBe(1400);
+  });
+
+  it('cruza varias maderas con varios clientes', () => {
+    expect(
+      toneladas(registros, { tipos: ['canter', 'rolla_gorda'], clientes: ['ecos_largos'] }),
+    ).toBe(500);
+    expect(toneladas(registros, { tipos: ['puntal'], clientes: ['viana', 'tome'] })).toBe(900);
+  });
+
+  it('una selección vacía es «todos», no «ninguno»', () => {
+    const todo = resumir(registros).total;
+    expect(toneladas(registros, {})).toBe(todo);
+    expect(toneladas(registros, { tipos: [], clientes: [] })).toBe(todo);
   });
 
   it('no inventa porcentajes cuando no hay base', () => {
