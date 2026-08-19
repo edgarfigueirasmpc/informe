@@ -114,6 +114,45 @@ describe('pino por cliente: hojas sin columnas de totales', () => {
     expect(suelto.clientes.map((cliente) => cliente.id)).toEqual(['costa_iberica']);
   });
 
+  it('mete el eucalipto como una madera más, con sus propios clientes', () => {
+    const conEucalipto = parsePinoCsv(
+      [
+        'anio;mes;puntal_viana;eucalipto_viana;eucalipto_navigator_setubal;eucalipto_bosques',
+        '2025;enero;600;100;250;50',
+      ].join('\n'),
+    );
+
+    expect(conEucalipto.tipos.map((tipo) => tipo.label)).toEqual(['Puntal', 'Eucalipto']);
+    expect(conEucalipto.clientesPorTipo.eucalipto).toEqual([
+      'viana',
+      'navigator_setubal',
+      'bosques',
+    ]);
+    // Viana recibe pino y eucalipto: es el mismo destino, no dos clientes.
+    expect(conEucalipto.clientes.map((cliente) => cliente.id)).toEqual([
+      'viana',
+      'navigator_setubal',
+      'bosques',
+    ]);
+    expect(resumir(conEucalipto.registros, { cliente: 'viana' }).porTipo).toEqual({
+      puntal: 600,
+      eucalipto: 100,
+    });
+  });
+
+  it('no convierte en tipo el prefijo que comparten dos clientes', () => {
+    // Con Navigator como único cliente del eucalipto, la forma sola diría que
+    // el tipo es «eucalipto navigator»; el nombre conocido lo impide.
+    const navigator = parsePinoCsv(
+      'anio;mes;eucalipto_navigator_setubal;eucalipto_navigator_foz\n2025;enero;250;300',
+    );
+    expect(navigator.tipos.map((tipo) => tipo.id)).toEqual(['eucalipto']);
+    expect(navigator.clientes.map((cliente) => cliente.label)).toEqual([
+      'Navigator Setúbal',
+      'Navigator Foz',
+    ]);
+  });
+
   it('un nombre conocido manda sobre la deducción', () => {
     // Con una sola columna de rolla gorda, deducir daría «rolla» + «gorda
     // castro»; como el tipo se conoce por su nombre, no llega a pasar.

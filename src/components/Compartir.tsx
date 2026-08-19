@@ -45,7 +45,7 @@ export function Compartir({ enlace, simulando, tipo = 'informe' }: Props) {
     tipo === 'historico'
       ? 'Histórico'
       : tipo === 'pino'
-        ? 'Pino por cliente'
+        ? 'Por cliente'
         : simulando
           ? 'Simulación'
           : 'Informe';

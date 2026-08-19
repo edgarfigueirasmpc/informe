@@ -35,9 +35,11 @@ interface Props {
 }
 
 /**
- * Pino por cliente. La pestaña del histórico responde «cuánto»; ésta responde
- * «de qué madera y para quién», que es la pregunta que se hace al negociar un
- * cupo.
+ * Por cliente. La pestaña del histórico responde «cuánto»; ésta responde «de
+ * qué madera y para quién», que es la pregunta que se hace al negociar un cupo.
+ *
+ * Aquí caben todas las maderas —los tres tipos de pino y el eucalipto—, y de
+ * hecho no hay ninguna escrita en el código: son las que traiga la hoja.
  *
  * Toda la vista cuelga de tres filtros —años, tipo de madera y cliente— más el
  * mes que se fije en la gráfica. Los paneles no tienen mandos propios: se
@@ -69,7 +71,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
 
   useEffect(() => {
     if (!csv || !dataset) return;
-    onChange({ csv, sourceName: origen || 'pino-por-cliente.csv', options });
+    onChange({ csv, sourceName: origen || 'por-cliente.csv', options });
   }, [csv, dataset, onChange, options, origen]);
 
   async function cargar(file: File | undefined) {
@@ -103,10 +105,11 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
         <>
           <div className="vacio pino__bienvenida">
             <h2 id="pino-titulo" className="vacio__titulo">
-              Carga el CSV de pino por cliente
+              Carga el CSV por cliente
             </h2>
             <p>
-              Es la hoja mensual con el desglose por tipo de madera y cliente de destino. Se lee
+              Es la hoja mensual con el desglose por tipo de madera —pino y eucalipto— y cliente
+              de destino. Se lee
               aquí mismo, en tu navegador, y queda dentro del enlace: para enseñárselo a alguien
               basta con pasarle la dirección.
             </p>
@@ -130,7 +133,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
               type="button"
               onClick={() => inputRef.current?.click()}
             >
-              Elegir el CSV de pino
+              Elegir el CSV
             </button>
             <p className="zona__pista">
               O arrástralo aquí. Se lee en tu navegador; ni se sube ni se guarda en ningún sitio.
@@ -142,7 +145,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
           <div>
             <p className="eyebrow">Desglose por madera y destino</p>
             <h2 id="pino-titulo" className="pino__titulo">
-              Pino por cliente
+              Por cliente
             </h2>
             <p className="pino__intro">
               Cuánto se vendió de cada tipo de madera, a quién y cuándo. Elige un tipo o un cliente
@@ -508,14 +511,14 @@ function Cifras({
         etiqueta={`Toneladas de ${nombreAmbito}`}
         valor={tn(tnAmbito)}
         unidad="TN"
-        pie={nombreFiltro || 'Todo el pino de esos meses'}
+        pie={nombreFiltro || 'Todas las maderas de esos meses'}
       />
 
       {hayFiltro ? (
         <Casilla
           etiqueta="Del suministro del ámbito"
           valor={cuotaPct(cuota(tnAmbito, tnAmbitoSinFiltro))}
-          pie={`Sobre las ${tnRedondo(tnAmbitoSinFiltro)} TN de pino de ${nombreAmbito}`}
+          pie={`Sobre las ${tnRedondo(tnAmbitoSinFiltro)} TN de ${nombreAmbito}`}
           medidor={cuota(tnAmbito, tnAmbitoSinFiltro)}
         />
       ) : (
@@ -672,7 +675,7 @@ function Quesitos({ dataset, ambito, options, nombreAmbito, onCambio }: Quesitos
         subtitulo={
           clienteElegido
             ? `Lo que se le mandó a ${clienteElegido.label} en ${nombreAmbito}`
-            : `Todo el pino de ${nombreAmbito}`
+            : `Todas las maderas de ${nombreAmbito}`
         }
         sectores={sectoresTipo}
         totalEtiqueta={`TN · ${nombreAmbito}`}
@@ -684,7 +687,7 @@ function Quesitos({ dataset, ambito, options, nombreAmbito, onCambio }: Quesitos
         subtitulo={
           tipoElegido
             ? `Quién se llevó el ${tipoElegido.label.toLocaleLowerCase('es')} en ${nombreAmbito}`
-            : `Todo el pino de ${nombreAmbito}`
+            : `Todas las maderas de ${nombreAmbito}`
         }
         sectores={sectoresCliente}
         totalEtiqueta={`TN · ${nombreAmbito}`}

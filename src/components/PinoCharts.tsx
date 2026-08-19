@@ -17,7 +17,7 @@ import {
 } from '../lib/pino';
 
 /**
- * Los dibujos de «Pino por cliente». Todos leen los mismos registros ya
+ * Los dibujos de «Por cliente». Todos leen los mismos registros ya
  * filtrados y ninguno guarda estado del negocio: lo que se ve depende sólo de
  * las opciones que baja la vista, de modo que los porcentajes de un panel y los
  * del de al lado no pueden discrepar.
@@ -26,9 +26,12 @@ import {
 // ---------------------------------------------------------------------------
 // Color
 //
-// Tres tonos validados para daltonismo sobre las dos superficies de la app (ver
-// `--pc-*` en styles.css). El color va con el tipo de madera, nunca con el
-// puesto que ocupe: al filtrar, lo que sobrevive conserva su tono.
+// Cuatro tonos comprobados para daltonismo sobre las dos superficies de la app
+// (ver `--pc-*` en styles.css). Con cuatro ya no se pueden separar del todo bajo
+// daltonismo severo, así que el color nunca va solo: toda gráfica lleva leyenda
+// con los nombres, los tramos se separan con un hueco y las tablas dan las
+// cifras. El tono va con la madera, nunca con el puesto que ocupe: al filtrar,
+// lo que sobrevive conserva el suyo.
 // ---------------------------------------------------------------------------
 
 const COLORES_TIPO = [
@@ -39,8 +42,34 @@ const COLORES_TIPO = [
   'var(--pc-5)',
 ];
 
-export const colorDeTipo = (dataset: PinoDataset, tipo: string) =>
-  COLORES_TIPO[Math.max(0, dataset.tipos.findIndex((actual) => actual.id === tipo)) % COLORES_TIPO.length];
+/**
+ * Las maderas que conocemos llevan color fijo, no el que les toque por orden.
+ * Importa sobre todo por el eucalipto: es el mismo verde que ya tiene en el
+ * informe y en el histórico, y cambiarle el tono al pasar de pestaña sería
+ * hacerle creer al lector que está mirando otra cosa.
+ */
+const COLOR_POR_TIPO: Record<string, string> = {
+  puntal: 'var(--pc-1)',
+  canter: 'var(--pc-2)',
+  eucalipto: 'var(--pc-3)',
+  rolla_gorda: 'var(--pc-4)',
+};
+
+export function colorDeTipo(dataset: PinoDataset, tipo: string): string {
+  const propio = COLOR_POR_TIPO[tipo];
+  if (propio) return propio;
+
+  // Una madera que no conocemos toma uno de los colores que no se haya llevado
+  // ninguna de las que sí, para que dos tipos nuevos nunca salgan iguales.
+  const ocupados = dataset.tipos.map((otro) => COLOR_POR_TIPO[otro.id]).filter(Boolean);
+  const libres = COLORES_TIPO.filter((color) => !ocupados.includes(color));
+  const paleta = libres.length > 0 ? libres : COLORES_TIPO;
+  const puesto = dataset.tipos
+    .filter((otro) => !COLOR_POR_TIPO[otro.id])
+    .findIndex((otro) => otro.id === tipo);
+
+  return paleta[Math.max(0, puesto) % paleta.length];
+}
 
 /**
  * Los clientes de un mismo tipo se escalonan sobre el tono de ese tipo. Es una

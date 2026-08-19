@@ -92,6 +92,7 @@ const ETIQUETAS_TIPO: Record<string, string> = {
   puntal: 'Puntal',
   canter: 'Canter',
   rolla_gorda: 'Rolla gorda',
+  eucalipto: 'Eucalipto',
 };
 
 const ETIQUETAS_CLIENTE: Record<string, string> = {
@@ -105,6 +106,9 @@ const ETIQUETAS_CLIENTE: Record<string, string> = {
   rodriguez: 'Rodríguez',
   lamelas: 'Lamelas',
   costa_iberica: 'Costa Ibérica',
+  navigator_setubal: 'Navigator Setúbal',
+  navigator_foz: 'Navigator Foz',
+  bosques: 'Bosques',
   clamadeiras: 'Clamadeiras',
   euromadeira: 'Euromadeira',
   unimadeiras: 'Unimadeiras',

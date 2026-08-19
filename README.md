@@ -10,16 +10,16 @@ permite consultar el desglose completo de cada punto mediante hover,
 foco o clic. Los años y las referencias estadísticas se pueden activar o
 desactivar, y los puntos con notas se señalan con un asterisco.
 
-La pestaña **Pino por cliente** responde a la otra mitad de la pregunta: no
-cuánto, sino **de qué madera y para quién**. Parte de un CSV mensual con el
-cruce completo de tipo de madera × cliente de destino y deja consultarlo desde
-cualquiera de sus lados —qué parte de un tipo se llevó un cliente, qué reparto
-de maderas tuvo un cliente, qué peso tuvo un mes dentro de su año— con los años
-y los meses siempre a la vista a la vez.
+La pestaña **Por cliente** responde a la otra mitad de la pregunta: no cuánto,
+sino **de qué madera y para quién**. Parte de un CSV mensual con el cruce
+completo de tipo de madera × cliente de destino —los tres tipos de pino y el
+eucalipto— y deja consultarlo desde cualquiera de sus lados: qué parte de un
+tipo se llevó un cliente, qué reparto de maderas tuvo un cliente, qué peso tuvo
+un mes dentro de su año, con los años y los meses siempre a la vista a la vez.
 
 No se publica ningún dato de ejemplo: las dos pestañas aparecen vacías hasta que
 el usuario carga su CSV. Una vez cargado, el CSV y los filtros se comprimen en
-el fragmento del enlace —`#h=` el histórico y `#p=` el pino por cliente—, igual
+el fragmento del enlace —`#h=` el histórico y `#p=` el desglose por cliente—, igual
 que el informe diario viaja en `#i=`. El fragmento no se envía al servidor;
 quien no tenga el enlace no recibe los datos.
 
@@ -63,11 +63,11 @@ futuras sin total se consideran huecos y no entran en la media.
 El archivo se lee localmente y sólo pasa a formar parte de la URL cuando se
 genera el enlace compartible.
 
-### Qué se lee del CSV de pino por cliente
+### Qué se lee del CSV por cliente
 
 Necesita las columnas `anio` y `mes`, y una columna por cada cruce de tipo de
 madera y cliente, con el tipo por delante: `puntal_finsa`, `canter_tome`,
-`rolla_gorda_lamelas`. Nada más: **las columnas de totales y de porcentajes
+`rolla_gorda_lamelas`, `eucalipto_bosques`. Nada más: **las columnas de totales y de porcentajes
 sobran**, porque todo se suma desde el detalle, que es lo único que permite
 repartir por cliente. Si la hoja las trae se leen igual, y el total del mes se
 usa sólo para avisar en pantalla cuando no cuadra con la suma del detalle —que
@@ -183,12 +183,19 @@ scripts/extraer-logo.py  Recorta los logos del mockup y genera los iconos
 
 ### El color de los gráficos
 
-Los tres tipos de madera tienen tono propio (`--pc-1`, `--pc-2` y `--pc-3` en
+Cada tipo de madera tiene tono propio (`--pc-*` en
 [`src/styles.css`](src/styles.css)), y dentro de un tipo los clientes se
-escalonan sobre ese mismo tono. La serie está comprobada para daltonismo sobre
-las dos superficies de la aplicación —clara y oscura—, y los tonos del modo
-oscuro son una elección aparte, no un aclarado de los del claro. **Cambiar un
-tono suelto obliga a volver a comprobar la serie entera.**
+escalonan sobre ese mismo tono. El eucalipto conserva a propósito el verde que
+ya tiene en el informe y en el histórico: es la misma madera en las tres
+pestañas.
+
+La serie está comprobada para daltonismo sobre las dos superficies de la
+aplicación —clara y oscura—, y los tonos del modo oscuro son una elección
+aparte, no un aclarado de los del claro. Con cuatro maderas ya no se pueden
+separar del todo bajo daltonismo severo, así que el color nunca va solo: toda
+gráfica lleva leyenda con los nombres, los tramos se separan con un hueco y las
+tablas dan las cifras. **Cambiar un tono suelto obliga a volver a comprobar la
+serie entera.**
 
 `pdfjs-dist` va en su propio fragmento y se descarga sólo al cargar un PDF:
 quien abre un enlace que ya trae el informe no lo llega a pedir.

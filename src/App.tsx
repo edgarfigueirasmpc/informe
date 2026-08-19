@@ -308,7 +308,7 @@ export default function App() {
           aria-selected={seccion === 'pino'}
           onClick={() => setSeccion('pino')}
         >
-          Pino por cliente
+          Por cliente
         </button>
       </nav>
 
