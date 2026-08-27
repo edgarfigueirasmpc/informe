@@ -102,6 +102,7 @@ describe('parsePages con el informe del 9-8-2026', () => {
     expect(view.summary.mediaClientes).toBeCloseTo(3872.54 / 5, 2);
 
     expect(view.summary.estimacionBase).toBeCloseTo(736.51 * 21, 0);
+    expect(view.summary.estimacionInforme).toBe(15466.67);
     expect(view.summary.estimacionClientes).toBeCloseTo((3872.54 / 5) * 21, 0);
   });
 });
@@ -177,6 +178,28 @@ describe('cálculo y simulación', () => {
       expect(c.total).toBeCloseTo(c.totalBase, 6);
     }
     expect(view.summary.sumaClientes).toBeCloseTo(3872.54, 2);
+  });
+
+  it('excluye clientes sólo de las cifras calculadas y permite conservarlos visibles', () => {
+    const base = computeView(report, EMPTY_OVERRIDES);
+    const finsa = base.clients.find((c) => c.name.startsWith('FINSA'))!;
+    const sinFinsa = computeView(report, {
+      clients: {},
+      excludedClients: [finsa.name],
+    });
+
+    expect(sinFinsa.clients.find((c) => c.name === finsa.name)?.activo).toBe(false);
+    expect(sinFinsa.clients).toHaveLength(base.clients.length);
+    expect(sinFinsa.summary.sumaClientes).toBeCloseTo(
+      base.summary.sumaClientes - finsa.total,
+      2,
+    );
+    expect(sinFinsa.summary.mediaClientes).toBeCloseTo(
+      base.summary.mediaClientes - finsa.media,
+      6,
+    );
+    expect(sinFinsa.summary.totalMes).toBe(base.summary.totalMes);
+    expect(sinFinsa.summary.editado).toBe(true);
   });
 
   it('calcula el estado del cupo con el total actual, no con la estimación futura', () => {

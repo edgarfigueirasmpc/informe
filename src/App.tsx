@@ -231,6 +231,18 @@ export default function App() {
     [cambiarOverrides],
   );
 
+  const alternarCliente = useCallback(
+    (cliente: string) => {
+      cambiarOverrides((previo) => {
+        const excluidos = new Set(previo.excludedClients ?? []);
+        if (excluidos.has(cliente)) excluidos.delete(cliente);
+        else excluidos.add(cliente);
+        return { ...previo, excludedClients: [...excluidos] };
+      });
+    },
+    [cambiarOverrides],
+  );
+
   const view = useMemo(
     () => (estado.fase === 'listo' ? computeView(estado.report, estado.overrides) : null),
     [estado],
@@ -392,6 +404,7 @@ export default function App() {
             orden={orden}
             onOrden={cambiarOrden}
             onSetMedia={setMedia}
+            onToggleClient={alternarCliente}
           />
 
           <Compartir enlace={enlace} simulando={view.summary.editado} />
@@ -404,16 +417,19 @@ export default function App() {
               media por los {view.summary.diasTotales} días laborables del mes.
             </p>
             <p>
-              Las dos columnas sombreadas se pueden escribir: cambia las TN por día o la estimación
-              de un cliente y el resto se recalcula solo. Al hacerlo, arriba se traslada únicamente
-              la diferencia respecto al dato original, de modo que el total de referencia sigue
-              siendo el del informe. Vacía la casilla para volver al dato del PDF.
+              Las tres columnas sombreadas se pueden escribir: cambia el total actual, las TN por día
+              o la estimación de un cliente y el resto se recalcula solo. Al hacerlo, las cifras
+              calculadas del resumen cambian al instante. Vacía la casilla para volver al dato del PDF.
             </p>
             <p>
-              Arriba conviven dos cifras por bloque. La grande es la que firma la cabecera del PDF
-              y es la que sirve de referencia a las simulaciones; debajo, en pequeño, va la misma
-              magnitud sumando cliente a cliente. No coinciden —el informe no cuadra consigo
-              mismo—, así que se enseñan las dos en vez de elegir por ti.
+              Pulsa una fila o el nombre de un cliente para sacarlo de las cifras «Sumando clientes».
+              La fila seguirá visible en gris y podrás pulsarla otra vez para incluirla de nuevo.
+            </p>
+            <p>
+              Arriba conviven dos cifras por bloque. La grande se calcula sumando únicamente los
+              clientes activos; debajo queda la cifra original de la cabecera del PDF y su
+              diferencia respecto al cálculo. Así se ve el dato de trabajo sin perder la referencia
+              del informe importado.
             </p>
           </div>
         </>

@@ -2,8 +2,8 @@
  * Modelo de datos del informe y toda la aritmética de simulación.
  *
  * Reglas acordadas:
- *  - El total de referencia de la fila superior es el que imprime el PDF
- *    ("Total mes"), no la suma de clientes: el PDF no cuadra y mandan sus totales.
+ *  - El resumen principal suma los clientes activos; los valores de la cabecera
+ *    del PDF se conservan como contraste y trazabilidad.
  *  - Cada cliente vale la suma de sus dos quincenas (la columna "Total" del PDF
  *    se ignora porque tampoco cuadra).
  *  - Al editar un cliente sólo se propaga la diferencia respecto a su valor
@@ -60,11 +60,13 @@ export interface Report {
 export interface Overrides {
   /** TN/día simuladas por cliente. */
   clients: Record<string, number>;
+  /** Clientes visibles que no participan en los totales calculados. */
+  excludedClients?: string[];
   /** Días laborables restantes, si se quiere forzar otro escenario. */
   diasRestantes?: number;
 }
 
-export const EMPTY_OVERRIDES: Overrides = { clients: {} };
+export const EMPTY_OVERRIDES: Overrides = { clients: {}, excludedClients: [] };
 
 // ---------------------------------------------------------------------------
 // Cálculo
@@ -72,6 +74,8 @@ export const EMPTY_OVERRIDES: Overrides = { clients: {} };
 
 export interface ClientView {
   name: string;
+  /** Si participa en las cifras "Sumando clientes". */
+  activo: boolean;
   /** Desglose por especie tal cual viene del PDF. No se simula. */
   tn: Record<Species, number>;
   /** Suma de las tres especies: el acumulado que imprime el informe. */
@@ -108,8 +112,10 @@ export interface ClientView {
 }
 
 export interface SummaryView {
-  /** Acumulado real del mes. No es simulable: es historia. */
+  /** Acumulado original que figura en la cabecera del PDF. */
   totalMes: number;
+  /** Estimación que figura literalmente en la cabecera del PDF. */
+  estimacionInforme: number;
   mediaBase: number;
   media: number;
   estimacionBase: number;
@@ -121,10 +127,8 @@ export interface SummaryView {
   editado: boolean;
 
   /**
-   * Las mismas tres magnitudes, pero sumando cliente a cliente en vez de
-   * leerlas de la cabecera del PDF. No cuadran con las de arriba —el informe no
-   * cuadra consigo mismo— y por eso se enseñan las dos: una es la que firma el
-   * informe y la otra la que sale de sus propios datos.
+   * Las tres magnitudes principales del resumen, sumando únicamente los
+   * clientes activos. Pueden diferir de la cabecera original del PDF.
    */
   sumaClientes: number;
   mediaClientes: number;
@@ -151,6 +155,7 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
   const diasTrabajados = header.diasTrabajados || 1;
   const diasRestantes = overrides.diasRestantes ?? header.diasRestantes;
   const diasTotales = diasTrabajados + diasRestantes;
+  const excluidos = new Set(overrides.excludedClients ?? []);
 
   const clients: ClientView[] = report.clients.map((c) => {
     const totalBase = clientTotal(c);
@@ -162,6 +167,7 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
     const restanteEstimado = media * diasRestantes;
     return {
       name: c.name,
+      activo: !excluidos.has(c.name),
       tn: c.tn,
       totalBase: round2(totalBase),
       total: media * diasTrabajados,
@@ -190,10 +196,12 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
   const speciesEnUso = SPECIES.filter((s) =>
     report.clients.some((c) => (c.tn[s] || 0) !== 0),
   );
+  const clientsActivos = clients.filter((c) => c.activo);
 
   return {
     summary: {
       totalMes: header.totalMes,
+      estimacionInforme: header.estimacionMes,
       mediaBase,
       media,
       estimacionBase,
@@ -202,16 +210,19 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
       diasTrabajados,
       diasRestantes,
       diasTotales,
-      editado: clients.some((c) => c.editado) || overrides.diasRestantes !== undefined,
+      editado:
+        clients.some((c) => c.editado) ||
+        overrides.diasRestantes !== undefined ||
+        excluidos.size > 0,
 
       // Las tres reaccionan a las simulaciones, porque la media simulada se
       // aplica a todo el mes, también a los días ya trabajados.
       // Redondeado porque ya no es una suma directa sino una recomposición
       // (media × días), y eso arrastra error de coma flotante: sin esto salen
       // 3872.5399999999995 donde el informe dice 3872,54.
-      sumaClientes: round2(clients.reduce((acc, c) => acc + c.total, 0)),
-      mediaClientes: clients.reduce((acc, c) => acc + c.media, 0),
-      estimacionClientes: clients.reduce((acc, c) => acc + c.estimacion, 0),
+      sumaClientes: round2(clientsActivos.reduce((acc, c) => acc + c.total, 0)),
+      mediaClientes: clientsActivos.reduce((acc, c) => acc + c.media, 0),
+      estimacionClientes: clientsActivos.reduce((acc, c) => acc + c.estimacion, 0),
     },
     // Orden de partida: lo que más pesa, arriba. La tabla puede cambiarlo.
     clients: ordenarClientes(clients, ORDEN_POR_DEFECTO),

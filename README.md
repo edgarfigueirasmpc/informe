@@ -100,17 +100,15 @@ media diaria del cliente  = suma de quincenas / días trabajados
 estimación mensual        = media diaria × (días trabajados + días restantes)
 ```
 
-La fila superior parte de los totales que encabezan el PDF, y al editar un
-cliente **sólo se le traslada la diferencia** respecto a su dato original. Es la
-misma aritmética del informe en papel: si Finsa pasa de 60 a 180 TN/día, la
-estimación del mes sube de 15.464 a 15.464 + (3.780 − 1.260) = **17.984 TN**.
+La cifra principal de cada bloque del resumen sale de sumar los clientes activos.
+Debajo se conserva la cifra original de la cabecera del PDF y su diferencia
+respecto al cálculo. No coinciden —el informe no cuadra consigo mismo— y se
+muestran las dos para mantener la trazabilidad.
 
-Cada bloque del resumen enseña dos cifras: la que firma la cabecera del PDF y la
-que sale de sumar cliente a cliente. No coinciden —el informe no cuadra consigo
-mismo— y se muestran las dos en vez de elegir por el lector.
-
-Las simulaciones también van en el enlace, así que se puede compartir un
-escenario y no sólo el informe.
+El total actual, la media y la estimación de cada cliente se pueden editar. También
+se puede excluir un cliente del cálculo sin ocultar su fila. Los ajustes y la lista
+de clientes excluidos viajan en el enlace, así que se puede compartir el escenario
+completo y no sólo el informe.
 
 ### Pendiente de cupo
 

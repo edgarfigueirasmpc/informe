@@ -11,6 +11,7 @@ interface Props {
   label: string;
   onChange: (value: number | null) => void;
   decimals?: number;
+  disabled?: boolean;
 }
 
 /**
@@ -21,7 +22,15 @@ interface Props {
  * millar); al entrar a escribir lo desnuda, porque un separador de millares
  * dentro de una casilla que se está tecleando estorba más que ayuda.
  */
-export function EditableNumber({ value, base, editado, label, onChange, decimals = 2 }: Props) {
+export function EditableNumber({
+  value,
+  base,
+  editado,
+  label,
+  onChange,
+  decimals = 2,
+  disabled = false,
+}: Props) {
   const [draft, setDraft] = useState<string | null>(null);
   const [enfocado, setEnfocado] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +70,7 @@ export function EditableNumber({ value, base, editado, label, onChange, decimals
         .filter(Boolean)
         .join(' ')}
       type="text"
+      disabled={disabled}
       inputMode="decimal"
       value={texto}
       aria-label={label}

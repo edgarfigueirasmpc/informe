@@ -410,8 +410,8 @@ select {
   text-decoration-thickness: var(--rule);
 }
 
-/* La misma magnitud sumando clientes, enfrentada a la del informe. Va callada:
-   es un contraste, no un segundo titular. */
+/* La cifra original del informe queda como contraste discreto bajo el cálculo,
+   que es ahora el dato principal del resumen. */
 .contraste {
   display: flex;
   align-items: baseline;
@@ -601,8 +601,62 @@ select {
   box-shadow: inset 3px 0 0 var(--naranja);
 }
 
+/* Un cliente excluido sigue en su sitio para que sea fácil recuperarlo, pero
+   pierde contraste: así no se confunde con los que sí alimentan el resumen. */
+.tabla tbody .fila--inactiva,
+.tabla tbody .fila--inactiva:hover {
+  background: color-mix(in srgb, var(--ink) 5%, var(--surface)) !important;
+  color: var(--ink-faint);
+}
+
+.fila--inactiva td:first-child {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+.fila--inactiva .barra,
+.fila--inactiva .editable,
+.fila--inactiva .cupo {
+  opacity: 0.42;
+}
+
 .cliente__nombre {
   display: block;
+}
+
+.cliente__toggle {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cliente__toggle:hover span:nth-child(2) {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.cliente__estado {
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.4rem;
+  border: var(--rule) solid currentColor;
+  border-radius: 2px;
+  font-size: 9px;
+  vertical-align: 1px;
+}
+
+.cliente__excluido {
+  margin-left: 0.5rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .cliente__pie {
@@ -731,6 +785,10 @@ select {
 .editable--invalido {
   border-bottom-color: var(--naranja);
   color: var(--naranja);
+}
+
+.editable:disabled {
+  cursor: not-allowed;
 }
 
 td:last-child .editable {
@@ -1031,6 +1089,11 @@ td:last-child .editable {
 
 .grafica__fila--sim .grafica__dato {
   color: var(--naranja);
+}
+
+.grafica__fila--inactiva {
+  filter: grayscale(1);
+  opacity: 0.35;
 }
 
 /* En el teléfono, el nombre ocupa su propia línea y debajo se conserva la

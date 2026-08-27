@@ -56,7 +56,12 @@ export function Grafica({ clientes, columnas }: Props) {
       <ol className="grafica__lista">
         {clientes.map((c) => {
           return (
-            <li key={c.name} className={`grafica__fila ${c.editado ? 'grafica__fila--sim' : ''}`}>
+            <li
+              key={c.name}
+              className={`grafica__fila ${c.editado ? 'grafica__fila--sim' : ''} ${
+                !c.activo ? 'grafica__fila--inactiva' : ''
+              }`}
+            >
               <span className="grafica__nombre" title={c.name}>
                 {c.name}
               </span>

@@ -10,6 +10,7 @@ interface Props {
   orden: Orden;
   onOrden: (campo: CampoOrden) => void;
   onSetMedia: (client: string, media: number | null) => void;
+  onToggleClient: (client: string) => void;
 }
 
 const ETIQUETA_CUPO: Record<ReturnType<typeof cupoStatus>, string> = {
@@ -18,7 +19,14 @@ const ETIQUETA_CUPO: Record<ReturnType<typeof cupoStatus>, string> = {
   pendiente: 'No cubierto',
 };
 
-export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Props) {
+export function ClientsTable({
+  view,
+  clientes,
+  orden,
+  onOrden,
+  onSetMedia,
+  onToggleClient,
+}: Props) {
   const { summary } = view;
   // Pino y eucalipto siempre; "otras" sólo cuando el informe trae algo.
   const columnas: Species[] = ['pino', 'eucalipto'];
@@ -27,7 +35,8 @@ export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Pro
   const hayCupos = clientes.some((c) => c.cupoPendiente !== null);
   // La escala de las barras no depende del orden elegido, sino del mayor.
   const mayor = Math.max(...clientes.map((c) => c.total), 1);
-  const totalPor = (s: Species) => clientes.reduce((acc, c) => acc + (c.tn[s] || 0), 0);
+  const activos = clientes.filter((c) => c.activo);
+  const totalPor = (s: Species) => activos.reduce((acc, c) => acc + (c.tn[s] || 0), 0);
 
   return (
     <div className="tabla-envoltorio">
@@ -45,8 +54,8 @@ export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Pro
               </Cabecera>
             ))}
 
-            <Cabecera campo="total" orden={orden} onOrden={onOrden}>
-              Total TN
+            <Cabecera campo="total" orden={orden} onOrden={onOrden} editable>
+              Total actual
             </Cabecera>
             <Cabecera campo="media" orden={orden} onOrden={onOrden} editable>
               TN / día
@@ -73,6 +82,7 @@ export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Pro
               diasTrabajados={summary.diasTrabajados}
               diasTotales={summary.diasTotales}
               onSetMedia={onSetMedia}
+              onToggleClient={onToggleClient}
             />
           ))}
         </tbody>
@@ -85,7 +95,7 @@ export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Pro
                 {tn(totalPor(s))}
               </td>
             ))}
-            <td className="num col--editable" data-etiqueta="Total TN">
+            <td className="num col--editable" data-etiqueta="Total actual">
               {tn(summary.sumaClientes)}
             </td>
             {/* Las mismas cifras que enseña el resumen como "sumando clientes". */}
@@ -97,7 +107,7 @@ export function ClientsTable({ view, clientes, orden, onOrden, onSetMedia }: Pro
             </td>
             {hayCupos && (
               <td className="num" data-etiqueta="Cupo pendiente total">
-                {tn(clientes.reduce((acc, c) => acc + (c.cupoPendiente ?? 0), 0))}
+                {tn(activos.reduce((acc, c) => acc + (c.cupoPendiente ?? 0), 0))}
               </td>
             )}
           </tr>
@@ -155,6 +165,7 @@ interface FilaProps {
   diasTrabajados: number;
   diasTotales: number;
   onSetMedia: (client: string, media: number | null) => void;
+  onToggleClient: (client: string) => void;
 }
 
 function Fila({
@@ -165,13 +176,33 @@ function Fila({
   diasTrabajados,
   diasTotales,
   onSetMedia,
+  onToggleClient,
 }: FilaProps) {
   const estado = cupoStatus(c);
 
   return (
-    <tr className={c.editado ? 'fila--editada' : undefined}>
+    <tr
+      className={[c.editado ? 'fila--editada' : '', !c.activo ? 'fila--inactiva' : '']
+        .filter(Boolean)
+        .join(' ')}
+      aria-disabled={!c.activo}
+      title={c.activo ? 'Pulsa la fila para excluir este cliente del resumen' : 'Pulsa la fila para incluir este cliente en el resumen'}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest('input, button, a')) return;
+        onToggleClient(c.name);
+      }}
+    >
       <td>
-        <span className="cliente__nombre">{c.name}</span>
+        <button
+          type="button"
+          className="cliente__nombre cliente__toggle"
+          aria-pressed={c.activo}
+          onClick={() => onToggleClient(c.name)}
+        >
+          <span className="cliente__estado" aria-hidden="true">{c.activo ? '✓' : '—'}</span>
+          <span>{c.name}</span>
+          {!c.activo && <span className="cliente__excluido">Excluido</span>}
+        </button>
 
         {/* Cuánto pesa este cliente frente al mayor, y de qué especie es. */}
         <span
@@ -215,12 +246,13 @@ function Fila({
         );
       })}
 
-      <td className="celda--editable" data-etiqueta="Total TN">
+      <td className="celda--editable" data-etiqueta="Total actual">
         <EditableNumber
           value={c.total}
           base={c.totalBase}
           editado={c.editado}
           label={`Toneladas acumuladas de ${c.name}`}
+          disabled={!c.activo}
           onChange={(v) => onSetMedia(c.name, v === null ? null : v / diasTrabajados)}
         />
       </td>
@@ -231,6 +263,7 @@ function Fila({
           base={c.mediaBase}
           editado={c.editado}
           label={`TN por día de ${c.name}`}
+          disabled={!c.activo}
           onChange={(v) => onSetMedia(c.name, v)}
         />
       </td>
@@ -242,6 +275,7 @@ function Fila({
           editado={c.editado}
           decimals={0}
           label={`Estimación mensual de ${c.name}`}
+          disabled={!c.activo}
           onChange={(v) => onSetMedia(c.name, v === null ? null : v / diasTotales)}
         />
       </td>

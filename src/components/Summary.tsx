@@ -6,85 +6,61 @@ interface Props {
 }
 
 /**
- * La fila de arriba del boceto: total acumulado, media por día y estimación
- * mensual. Las dos últimas responden a las simulaciones de la tabla.
+ * Total acumulado, media por día y estimación mensual calculados desde los
+ * clientes activos. Las tres reaccionan a los ajustes de la tabla.
  *
- * Cada bloque enseña dos cifras: la que firma la cabecera del PDF (la grande,
- * que es la referencia y la base de las simulaciones) y la que sale de sumar
- * cliente a cliente. No coinciden porque el informe no cuadra consigo mismo, y
- * conviene tener las dos a la vista en lugar de esconder la diferencia.
+ * Debajo queda la cifra original de la cabecera del PDF y su desviación frente
+ * al cálculo, para conservar la trazabilidad sin darle la jerarquía principal.
  */
 export function Summary({ summary }: Props) {
-  const haySimulacion = Math.abs(summary.delta) >= 0.5;
-
   return (
     <section className="resumen" aria-label="Resumen del mes">
       <div className="resumen__celda resumen__celda--real">
         <div className="eyebrow">
-          Total acumulado <span className="eyebrow__fuente">· del informe</span>
+          Total acumulado <span className="eyebrow__fuente">· calculado</span>
         </div>
         <div className="resumen__valor num">
-          {tn(summary.totalMes)}
+          {tn(summary.sumaClientes)}
           <span className="resumen__unidad">TN</span>
         </div>
         <div className="resumen__pie">
           {summary.diasTrabajados} {summary.diasTrabajados === 1 ? 'día' : 'días'} trabajados
         </div>
-        <Contraste
-          valor={tn(summary.sumaClientes)}
-          diferencia={summary.sumaClientes - summary.totalMes}
+        <OriginalInforme
+          valor={tn(summary.totalMes)}
+          diferencia={summary.totalMes - summary.sumaClientes}
           decimales={2}
         />
       </div>
 
       <div className="resumen__celda resumen__celda--ritmo">
         <div className="eyebrow">
-          TN medias por día <span className="eyebrow__fuente">· del informe</span>
+          TN medias por día <span className="eyebrow__fuente">· calculado</span>
         </div>
         <div className="resumen__valor num">
-          {tn(summary.media)}
+          {tn(summary.mediaClientes)}
           <span className="resumen__unidad">TN</span>
         </div>
-        <div className="resumen__pie">
-          {haySimulacion ? (
-            <>
-              <span className="resumen__tachado num">{tn(summary.mediaBase)}</span>{' '}
-              <span className="resumen__delta num">
-                {delta(summary.media - summary.mediaBase, 2)}
-              </span>
-            </>
-          ) : (
-            'Ritmo real del mes'
-          )}
-        </div>
-        <Contraste
-          valor={tn(summary.mediaClientes)}
-          diferencia={summary.mediaClientes - summary.media}
+        <div className="resumen__pie">Ritmo de los clientes activos</div>
+        <OriginalInforme
+          valor={tn(summary.mediaBase)}
+          diferencia={summary.mediaBase - summary.mediaClientes}
           decimales={2}
         />
       </div>
 
       <div className="resumen__celda resumen__celda--proyeccion">
         <div className="eyebrow">
-          Estimación mensual <span className="eyebrow__fuente">· del informe</span>
+          Estimación mensual <span className="eyebrow__fuente">· calculada</span>
         </div>
         <div className="resumen__valor num">
-          {tnRedondo(summary.estimacion)}
+          {tnRedondo(summary.estimacionClientes)}
           <span className="resumen__unidad">TN</span>
         </div>
-        <div className="resumen__pie">
-          {haySimulacion ? (
-            <>
-              <span className="resumen__tachado num">{tnRedondo(summary.estimacionBase)}</span>{' '}
-              <span className="resumen__delta num">{delta(summary.delta)}</span>
-            </>
-          ) : (
-            `Sobre ${summary.diasTotales} días laborables`
-          )}
-        </div>
-        <Contraste
-          valor={tnRedondo(summary.estimacionClientes)}
-          diferencia={summary.estimacionClientes - summary.estimacion}
+        <div className="resumen__pie">Sobre {summary.diasTotales} días laborables</div>
+        <OriginalInforme
+          valor={tnRedondo(summary.estimacionInforme)}
+          diferencia={summary.estimacionInforme - summary.estimacionClientes}
           decimales={0}
         />
       </div>
@@ -92,8 +68,8 @@ export function Summary({ summary }: Props) {
   );
 }
 
-/** La misma magnitud, sumada cliente a cliente, con su desvío. */
-function Contraste({
+/** La cifra literal del PDF y su desvío respecto al cálculo principal. */
+function OriginalInforme({
   valor,
   diferencia,
   decimales,
@@ -107,9 +83,9 @@ function Contraste({
   return (
     <div
       className="contraste"
-      title="La misma cifra calculada sumando las quincenas de cada cliente, en vez de leerla de la cabecera del PDF."
+      title="Cifra original de la cabecera del PDF y diferencia respecto al cálculo de los clientes activos."
     >
-      <span className="contraste__fuente">Sumando clientes</span>
+      <span className="contraste__fuente">Cifra original del informe</span>
       <span className="contraste__cifras">
         <span className="num">{valor}</span>
         <span className={`contraste__dif num ${cuadra ? 'contraste__dif--cuadra' : ''}`}>

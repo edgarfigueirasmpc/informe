@@ -85,6 +85,7 @@ type Empaquetado = [
   clientes: ClienteEmpaquetado[],
   ajustes: [nombre: string, media: number][],
   diasRestantesAjustados: number | null,
+  clientesExcluidos: string[],
 ];
 
 function empaquetar(report: Report, overrides: Overrides): Empaquetado {
@@ -104,6 +105,7 @@ function empaquetar(report: Report, overrides: Overrides): Empaquetado {
     report.clients.map((c) => [c.name, c.tn.pino, c.tn.eucalipto, c.tn.otras, c.cupoPendiente]),
     Object.entries(overrides.clients),
     overrides.diasRestantes ?? null,
+    overrides.excludedClients ?? [],
   ];
 }
 
@@ -171,6 +173,12 @@ function desempaquetar(datos: unknown): EstadoCompartido | null {
     overrides: {
       clients: clientesAjustados,
       diasRestantes: typeof datos[13] === 'number' ? datos[13] : undefined,
+      excludedClients: esLista(datos[14])
+        ? datos[14].filter(
+            (nombre): nombre is string =>
+              typeof nombre === 'string' && clients.some((client) => client.name === nombre),
+          )
+        : [],
     },
   };
 }

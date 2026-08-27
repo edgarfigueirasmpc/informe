@@ -32,13 +32,18 @@ describe('ida y vuelta por la URL', () => {
 
     expect(vuelta).not.toBeNull();
     expect(vuelta!.report).toEqual(report);
-    expect(vuelta!.overrides).toEqual({ clients: {}, diasRestantes: undefined });
+    expect(vuelta!.overrides).toEqual({
+      clients: {},
+      diasRestantes: undefined,
+      excludedClients: [],
+    });
   });
 
   it('conserva los ajustes, para poder compartir un escenario simulado', async () => {
     const ajustes: Overrides = {
       clients: { 'FINSA OREMBER': 180, 'UNIMADEIRAS (TOSCA)': 110 },
       diasRestantes: 12,
+      excludedClients: ['DS SMITH PAPER VIANA, S.A.'],
     };
 
     const vuelta = await descodificar(await codificar(report, ajustes));
@@ -46,12 +51,17 @@ describe('ida y vuelta por la URL', () => {
   });
 
   it('llega a los mismos números que antes de pasar por la URL', async () => {
-    const antes = computeView(report, { clients: { 'FINSA OREMBER': 180 } });
-    const vuelta = await descodificar(await codificar(report, { clients: { 'FINSA OREMBER': 180 } }));
+    const ajustes: Overrides = {
+      clients: { 'FINSA OREMBER': 180 },
+      excludedClients: ['DS SMITH PAPER VIANA, S.A.'],
+    };
+    const antes = computeView(report, ajustes);
+    const vuelta = await descodificar(await codificar(report, ajustes));
     const despues = computeView(vuelta!.report, vuelta!.overrides);
 
     expect(despues.summary).toEqual(antes.summary);
     expect(despues.clients).toEqual(antes.clients);
+    expect(despues.clients.find((c) => c.name === 'DS SMITH PAPER VIANA, S.A.')?.activo).toBe(false);
   });
 
   it('respeta los acentos de los nombres portugueses', async () => {
