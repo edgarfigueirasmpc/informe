@@ -85,7 +85,7 @@ function OriginalInforme({
       className="contraste"
       title="Cifra original de la cabecera del PDF y diferencia respecto al cálculo de los clientes activos."
     >
-      <span className="contraste__fuente">Cifra original del informe</span>
+      <span className="contraste__fuente">Cifra informe original</span>
       <span className="contraste__cifras">
         <span className="num">{valor}</span>
         <span className={`contraste__dif num ${cuadra ? 'contraste__dif--cuadra' : ''}`}>
