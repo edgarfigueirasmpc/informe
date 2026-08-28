@@ -78,7 +78,8 @@ function OriginalInforme({
   diferencia: number;
   decimales: number;
 }) {
-  const cuadra = Math.abs(diferencia) < (decimales === 0 ? 0.5 : 0.005);
+  // Cuadra si la diferencia no llega a media unidad del último decimal visible.
+  const cuadra = Math.abs(diferencia) < (decimales === 0 ? 0.5 : 0.0005);
 
   return (
     <div

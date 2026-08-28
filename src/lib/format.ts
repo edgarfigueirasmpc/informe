@@ -10,12 +10,16 @@ const nf = (min: number, max: number) =>
 
 const enteros = nf(0, 0);
 const unDecimal = nf(1, 1);
-const dosDecimales = nf(2, 2);
-const flexible = nf(0, 2);
+const decimalesTn = nf(2, 3);
+const flexible = nf(0, 3);
 
-/** TN acumuladas y medias: dos decimales, como el PDF. */
+/**
+ * TN acumuladas y medias. Dos decimales de mínimo, para que una columna de
+ * cifras se lea alineada, y hasta tres cuando el dato los trae: el origen mide
+ * con esa precisión y redondear aquí escondería kilos que sí están contados.
+ */
 export function tn(n: number): string {
-  return dosDecimales.format(n);
+  return decimalesTn.format(n);
 }
 
 /** Estimaciones: son proyecciones, los decimales sólo estorban. */
@@ -23,7 +27,7 @@ export function tnRedondo(n: number): string {
   return enteros.format(Math.round(n));
 }
 
-/** Para las casillas editables: sin ceros de relleno. */
+/** Para las casillas editables: sin ceros de relleno, y sin perder decimales. */
 export function tnEditable(n: number): string {
   return flexible.format(n);
 }
@@ -31,7 +35,7 @@ export function tnEditable(n: number): string {
 /** Diferencia respecto al dato del informe, siempre con signo. */
 export function delta(n: number, decimales = 0): string {
   const signo = n > 0 ? '+' : n < 0 ? '−' : '';
-  const formato = decimales === 0 ? enteros : dosDecimales;
+  const formato = decimales === 0 ? enteros : decimalesTn;
   return `${signo}${formato.format(Math.abs(n))}`;
 }
 

@@ -33,8 +33,23 @@ describe('parseNumber', () => {
     expect(parseNumber('3.682,54')).toBe(3682.54);
     expect(parseNumber('3,682.54')).toBe(3682.54);
     expect(parseNumber('25')).toBe(25);
-    expect(parseNumber('1.234')).toBe(1234);
     expect(parseNumber('LDA')).toBeNull();
+  });
+
+  it('lee como decimales todo lo que sigue a un punto suelto', () => {
+    // El PDF escribe las toneladas sin separador de millares, así que un punto
+    // solo nunca agrupa: tomar «538.744» por quinientos mil sería un error de
+    // mil veces, y ese es justo el orden de magnitud de un mes entero.
+    expect(parseNumber('538.744')).toBe(538.744);
+    expect(parseNumber('594.122')).toBe(594.122);
+    expect(parseNumber('1.234')).toBe(1.234);
+    expect(parseNumber('1016.107')).toBe(1016.107);
+    expect(parseNumber('92.4')).toBe(92.4);
+  });
+
+  it('sigue agrupando cuando hay más de un punto, que no puede ser decimal', () => {
+    expect(parseNumber('12.345.678')).toBe(12345678);
+    expect(parseNumber('1.016.107')).toBe(1016107);
   });
 });
 

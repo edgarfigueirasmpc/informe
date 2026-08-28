@@ -104,6 +104,13 @@ export function clientKey(name: string): string {
 /**
  * Convierte a número admitiendo formato español e inglés.
  * "1.234,56" y "1,234.56" dan lo mismo; "3682.54" y "25" también.
+ *
+ * **Un punto solo es siempre decimal.** El generador del PDF escribe las
+ * toneladas sin separador de millares —`2045.82`, no `2.045,82`—, así que
+ * cuando aparece un único punto lo que va detrás son décimas, por muchas que
+ * sean: leer `538.744` como quinientos treinta y ocho mil es equivocarse por
+ * mil. Varios puntos sí agrupan millares, porque un número no puede llevar dos
+ * comas decimales.
  */
 export function parseNumber(raw: string): number | null {
   const s = raw.trim().replace(/\s/g, '');
@@ -123,7 +130,7 @@ export function parseNumber(raw: string): number | null {
     // Una sola coma: decimal, salvo que sea agrupación de miles (1,234).
     normalized = /^-?\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
   } else if (lastDot >= 0) {
-    normalized = /^-?\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, '') : s;
+    normalized = s.indexOf('.') === lastDot ? s : s.replace(/\./g, '');
   } else {
     normalized = s;
   }

@@ -146,8 +146,14 @@ export function clientTotal(c: ClientRecord): number {
   return SPECIES.reduce((acc, s) => acc + (c.tn[s] || 0), 0);
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
+/**
+ * Quita el ruido de la coma flotante sin tocar el dato: sumar dos quincenas de
+ * tres decimales da tres decimales, pero en binario sale `538.7440000000001`.
+ * Se redondea a esa misma precisión y no a dos, porque el tercer decimal del
+ * origen son kilos que sí están contados.
+ */
+function round3(n: number): number {
+  return Math.round(n * 1000) / 1000;
 }
 
 export function computeView(report: Report, overrides: Overrides): ReportView {
@@ -169,7 +175,7 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
       name: c.name,
       activo: !excluidos.has(c.name),
       tn: c.tn,
-      totalBase: round2(totalBase),
+      totalBase: round3(totalBase),
       total: media * diasTrabajados,
       mediaBase,
       media,
@@ -220,7 +226,7 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
       // Redondeado porque ya no es una suma directa sino una recomposición
       // (media × días), y eso arrastra error de coma flotante: sin esto salen
       // 3872.5399999999995 donde el informe dice 3872,54.
-      sumaClientes: round2(clientsActivos.reduce((acc, c) => acc + c.total, 0)),
+      sumaClientes: round3(clientsActivos.reduce((acc, c) => acc + c.total, 0)),
       mediaClientes: clientsActivos.reduce((acc, c) => acc + c.media, 0),
       estimacionClientes: clientsActivos.reduce((acc, c) => acc + c.estimacion, 0),
     },

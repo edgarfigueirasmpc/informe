@@ -309,11 +309,11 @@ export function parsePages(pages: PageText[], sourceFile: string): ParseResult {
   const clients = [...byClient.values()].map((c) => ({
     ...c,
     tn: {
-      pino: round2(c.tn.pino),
-      eucalipto: round2(c.tn.eucalipto),
-      otras: round2(c.tn.otras),
+      pino: round3(c.tn.pino),
+      eucalipto: round3(c.tn.eucalipto),
+      otras: round3(c.tn.otras),
     },
-    cupoPendiente: c.cupoPendiente === null ? null : round2(c.cupoPendiente),
+    cupoPendiente: c.cupoPendiente === null ? null : round3(c.cupoPendiente),
   }));
 
   if (clients.length === 0) {
@@ -331,6 +331,12 @@ export function parsePages(pages: PageText[], sourceFile: string): ParseResult {
   };
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
+/**
+ * Quita el ruido de la coma flotante sin tocar el dato: sumar dos quincenas de
+ * tres decimales da tres decimales, pero en binario sale `538.7440000000001`.
+ * Se redondea a esa misma precisión y no a dos, porque el tercer decimal del
+ * origen son kilos que sí están contados.
+ */
+function round3(n: number): number {
+  return Math.round(n * 1000) / 1000;
 }

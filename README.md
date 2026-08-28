@@ -56,6 +56,14 @@ el mismo cuidado que se repartiría el PDF.
 La columna «Total» que imprime el PDF se ignora a propósito: no cuadra con la
 suma de sus propias quincenas.
 
+**Un punto es siempre decimal.** El PDF escribe las cifras sin separador de
+millares —`2045.82`, no `2.045,82`—, así que lo que sigue a un punto suelto son
+décimas por muchas que sean: `538.744` son quinientas treinta y ocho toneladas
+y pico, no quinientas treinta y ocho mil. Sólo se agrupa cuando hay más de un
+punto, porque un número no puede llevar dos comas decimales. En pantalla las
+toneladas llevan dos decimales de mínimo —para que las columnas queden
+alineadas— y hasta tres cuando el dato los trae.
+
 ### Qué se lee del CSV histórico
 
 El CSV admite separador de punto y coma o coma y necesita las columnas `mes`,
