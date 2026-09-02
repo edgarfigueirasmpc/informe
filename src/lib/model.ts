@@ -4,8 +4,8 @@
  * Reglas acordadas:
  *  - El resumen principal suma los clientes activos; los valores de la cabecera
  *    del PDF se conservan como contraste y trazabilidad.
- *  - Cada cliente vale la suma de sus dos quincenas (la columna "Total" del PDF
- *    se ignora porque tampoco cuadra).
+ *  - Cada cliente toma exclusivamente la columna "Total" del PDF. Las dos
+ *    quincenas se ignoran.
  *  - Al editar un cliente sólo se propaga la diferencia respecto a su valor
  *    original, igual que en el cálculo a mano: 15.464 + (3.780 − 1.260) = 17.984.
  */
@@ -23,7 +23,7 @@ export const SPECIES_LABEL: Record<Species, string> = {
 /** Fila de cliente tal y como sale del PDF, ya agregada por especie. */
 export interface ClientRecord {
   name: string;
-  /** Suma de 1ª + 2ª quincena, por especie. */
+  /** Columna "Total" del PDF, agregada por especie. */
   tn: Record<Species, number>;
   /** Columna "TN/Pendientes Cupo". null cuando el PDF no trae valor. */
   cupoPendiente: number | null;
@@ -147,10 +147,9 @@ export function clientTotal(c: ClientRecord): number {
 }
 
 /**
- * Quita el ruido de la coma flotante sin tocar el dato: sumar dos quincenas de
- * tres decimales da tres decimales, pero en binario sale `538.7440000000001`.
- * Se redondea a esa misma precisión y no a dos, porque el tercer decimal del
- * origen son kilos que sí están contados.
+ * Quita el ruido de la coma flotante sin tocar el dato al sumar los totales de
+ * varias especies. Se redondea a tres decimales y no a dos, porque el tercer
+ * decimal del origen son kilos que sí están contados.
  */
 function round3(n: number): number {
   return Math.round(n * 1000) / 1000;

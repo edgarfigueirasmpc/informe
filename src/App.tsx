@@ -412,9 +412,10 @@ export default function App() {
           <div className="notas">
             <p className="notas__titulo eyebrow">Cómo se calcula</p>
             <p>
-              Cada cliente vale la suma de sus dos quincenas. Su media diaria es ese acumulado
-              entre los {view.summary.diasTrabajados} días trabajados, y la estimación mensual, esa
-              media por los {view.summary.diasTotales} días laborables del mes.
+              Cada cliente toma únicamente el total del PDF; las dos quincenas se ignoran. Su media
+              diaria es ese acumulado entre los {view.summary.diasTrabajados} días trabajados, y la
+              estimación mensual, esa media por los {view.summary.diasTotales} días laborables del
+              mes.
             </p>
             <p>
               Las tres columnas sombreadas se pueden escribir: cambia el total actual, las TN por día

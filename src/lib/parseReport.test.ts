@@ -77,13 +77,13 @@ describe('parsePages con el informe del 9-8-2026', () => {
     expect(nombres).toContain('SERRAÇAO MODERNA DE LAMELAS, LDA');
   });
 
-  it('suma las dos quincenas e ignora la columna Total del PDF', () => {
+  it('toma la columna Total e ignora las dos quincenas', () => {
     const costa = report.clients.find((c) => c.name.startsWith('COSTA IBERICA'))!;
-    // El PDF imprime 212.56 en "Total Pino", pero las quincenas suman 262.56.
-    expect(costa.tn.pino).toBe(262.56);
+    // Las quincenas suman 262.56, pero el dato que manda es "Total Pino".
+    expect(costa.tn.pino).toBe(212.56);
 
     const viana = report.clients.find((c) => c.name.startsWith('DS SMITH'))!;
-    expect(viana.tn.pino).toBe(2045.82);
+    expect(viana.tn.pino).toBe(1955.82);
   });
 
   it('lee TN/Pendientes Cupo sólo donde lo hay', () => {
@@ -101,24 +101,24 @@ describe('parsePages con el informe del 9-8-2026', () => {
     expect(viana.tn.otras).toBe(0);
   });
 
-  it('no avisa de nada: las quincenas cuadran con la fila Totales del PDF', () => {
+  it('no avisa de nada: los totales de cliente cuadran con la fila Totales del PDF', () => {
     expect(warnings).toEqual([]);
   });
 
   it('ofrece las dos versiones de cada magnitud, la del informe y la calculada', () => {
-    // El PDF dice "Total mes: 3682.54" pero sus propias quincenas suman
-    // 3872.54. Se enseñan las dos, así que las dos tienen que estar.
+    // La cabecera dice 3682.54 y las columnas Total de los clientes suman
+    // 3707.54. Se enseñan las dos, así que las dos tienen que estar.
     const view = computeView(report, EMPTY_OVERRIDES);
 
     expect(view.summary.totalMes).toBe(3682.54);
-    expect(view.summary.sumaClientes).toBe(3872.54);
+    expect(view.summary.sumaClientes).toBe(3707.54);
 
     expect(view.summary.mediaBase).toBeCloseTo(736.51, 2);
-    expect(view.summary.mediaClientes).toBeCloseTo(3872.54 / 5, 2);
+    expect(view.summary.mediaClientes).toBeCloseTo(3707.54 / 5, 2);
 
     expect(view.summary.estimacionBase).toBeCloseTo(736.51 * 21, 0);
     expect(view.summary.estimacionInforme).toBe(15466.67);
-    expect(view.summary.estimacionClientes).toBeCloseTo((3872.54 / 5) * 21, 0);
+    expect(view.summary.estimacionClientes).toBeCloseTo((3707.54 / 5) * 21, 0);
   });
 });
 
@@ -132,8 +132,8 @@ describe('cálculo y simulación', () => {
     expect(view.summary.estimacionBase).toBeCloseTo(15466.71, 1);
 
     const viana = view.clients.find((c) => c.name.startsWith('DS SMITH'))!;
-    expect(viana.mediaBase).toBeCloseTo(409.16, 2);
-    expect(viana.estimacionBase).toBeCloseTo(8592.44, 1);
+    expect(viana.mediaBase).toBeCloseTo(391.164, 3);
+    expect(viana.estimacionBase).toBeCloseTo(8214.444, 3);
 
     const finsa = view.clients.find((c) => c.name.startsWith('FINSA'))!;
     expect(finsa.mediaBase).toBeCloseTo(60.14, 2);
@@ -161,10 +161,10 @@ describe('cálculo y simulación', () => {
     const sim = computeView(report, { clients: { [finsa.name]: 180 } });
     const subida = (180 - 300.68 / 5) * 21;
 
-    // La del informe parte de 15.467 y la calculada de 16.265, pero la
+    // La del informe parte de 15.467 y la calculada de 15.572, pero la
     // simulación les suma exactamente lo mismo: sólo cambia el punto de partida.
     expect(sim.summary.estimacion).toBeCloseTo(736.51 * 21 + subida, 0);
-    expect(sim.summary.estimacionClientes).toBeCloseTo((3872.54 / 5) * 21 + subida, 0);
+    expect(sim.summary.estimacionClientes).toBeCloseTo((3707.54 / 5) * 21 + subida, 0);
 
     // El total que firma la cabecera del PDF no lo toca nadie.
     expect(sim.summary.totalMes).toBe(3682.54);
@@ -192,7 +192,7 @@ describe('cálculo y simulación', () => {
     for (const c of view.clients) {
       expect(c.total).toBeCloseTo(c.totalBase, 6);
     }
-    expect(view.summary.sumaClientes).toBeCloseTo(3872.54, 2);
+    expect(view.summary.sumaClientes).toBeCloseTo(3707.54, 2);
   });
 
   it('excluye clientes sólo de las cifras calculadas y permite conservarlos visibles', () => {

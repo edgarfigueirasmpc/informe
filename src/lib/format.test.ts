@@ -32,7 +32,7 @@ describe('del PDF a la pantalla', () => {
     expect(tn(leido!)).toBe('538,744');
   });
 
-  it('sumar dos quincenas no deja ruido de coma flotante a la vista', () => {
+  it('sumar varios totales no deja ruido de coma flotante a la vista', () => {
     expect(tn(Math.round((0.1 + 0.2) * 1000) / 1000)).toBe('0,30');
   });
 });

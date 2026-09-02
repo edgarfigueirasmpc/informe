@@ -182,8 +182,7 @@ function nearestColumn(cols: Column[], x: number): Column | null {
 
 interface SectionRow {
   name: string;
-  q1: number;
-  q2: number;
+  total: number;
   cupo: number | null;
 }
 
@@ -193,8 +192,7 @@ function parseDataRow(row: Row, cols: Column[]): SectionRow | null {
   const name = normalizeSpace(nameCells.map((c) => c.text).join(' '));
   if (!name) return null;
 
-  let q1 = 0;
-  let q2 = 0;
+  let total = 0;
   let cupo: number | null = null;
 
   for (const cell of row.cells) {
@@ -203,12 +201,11 @@ function parseDataRow(row: Row, cols: Column[]): SectionRow | null {
     if (value === null) continue;
     const col = nearestColumn(cols, cell.x);
     if (!col) continue;
-    if (col.kind === 'q1') q1 += value;
-    else if (col.kind === 'q2') q2 += value;
+    if (col.kind === 'total') total += value;
     else if (col.kind === 'cupo') cupo = (cupo ?? 0) + value;
   }
 
-  return { name, q1, q2, cupo };
+  return { name, total, cupo };
 }
 
 interface Section {
@@ -290,13 +287,13 @@ export function parsePages(pages: PageText[], sourceFile: string): ParseResult {
         record = { name: row.name, tn: { pino: 0, eucalipto: 0, otras: 0 }, cupoPendiente: null };
         byClient.set(key, record);
       }
-      record.tn[species] += row.q1 + row.q2;
+      record.tn[species] += row.total;
       if (row.cupo !== null) record.cupoPendiente = (record.cupoPendiente ?? 0) + row.cupo;
     }
 
     if (section.totals) {
-      const suma = section.rows.reduce((acc, r) => acc + r.q1 + r.q2, 0);
-      const esperado = section.totals.q1 + section.totals.q2;
+      const suma = section.rows.reduce((acc, r) => acc + r.total, 0);
+      const esperado = section.totals.total;
       if (Math.abs(suma - esperado) > 0.05) {
         warnings.push(
           `En "${species}" la suma de clientes (${suma.toFixed(2)} TN) no coincide con la fila ` +
@@ -332,10 +329,9 @@ export function parsePages(pages: PageText[], sourceFile: string): ParseResult {
 }
 
 /**
- * Quita el ruido de la coma flotante sin tocar el dato: sumar dos quincenas de
- * tres decimales da tres decimales, pero en binario sale `538.7440000000001`.
- * Se redondea a esa misma precisión y no a dos, porque el tercer decimal del
- * origen son kilos que sí están contados.
+ * Quita el ruido de la coma flotante al agregar los totales de las distintas
+ * secciones. Se redondea a tres decimales y no a dos, porque el tercer decimal
+ * del origen son kilos que sí están contados.
  */
 function round3(n: number): number {
   return Math.round(n * 1000) / 1000;

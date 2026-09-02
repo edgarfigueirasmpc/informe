@@ -106,7 +106,7 @@ export function clientKey(name: string): string {
  * "1.234,56" y "1,234.56" dan lo mismo; "3682.54" y "25" también.
  *
  * **Un punto solo es siempre decimal.** El generador del PDF escribe las
- * toneladas sin separador de millares —`2045.82`, no `2.045,82`—, así que
+ * toneladas sin separador de millares —`1955.82`, no `1.955,82`—, así que
  * cuando aparece un único punto lo que va detrás son décimas, por muchas que
  * sean: leer `538.744` como quinientos treinta y ocho mil es equivocarse por
  * mil. Varios puntos sí agrupan millares, porque un número no puede llevar dos

@@ -50,14 +50,13 @@ el mismo cuidado que se repartiría el PDF.
 - La cabecera: periodo, días trabajados, días laborables restantes, total del
   mes y media por día.
 - Las tablas de especies (Eucalipto, Pinos y Otras Especies), de las que se
-  toma, por cliente, la **suma de las dos quincenas** y la columna
+  toman, por cliente, únicamente las columnas **Total** y
   **TN/Pendientes Cupo**.
 
-La columna «Total» que imprime el PDF se ignora a propósito: no cuadra con la
-suma de sus propias quincenas.
+Las columnas de primera y segunda quincena se ignoran por completo.
 
 **Un punto es siempre decimal.** El PDF escribe las cifras sin separador de
-millares —`2045.82`, no `2.045,82`—, así que lo que sigue a un punto suelto son
+millares —`1955.82`, no `1.955,82`—, así que lo que sigue a un punto suelto son
 décimas por muchas que sean: `538.744` son quinientas treinta y ocho toneladas
 y pico, no quinientas treinta y ocho mil. Sólo se agrupa cuando hay más de un
 punto, porque un número no puede llevar dos comas decimales. En pantalla las
@@ -104,7 +103,7 @@ meses futuros, en blanco, son huecos y no cuentan como ceros.
 ### Los cálculos
 
 ```
-media diaria del cliente  = suma de quincenas / días trabajados
+media diaria del cliente  = total del cliente / días trabajados
 estimación mensual        = media diaria × (días trabajados + días restantes)
 ```
 
