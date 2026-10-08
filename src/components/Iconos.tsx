@@ -104,3 +104,19 @@ export function IconoBorrar({ className = 'icono' }: Props) {
     </svg>
   );
 }
+
+export function IconoIzquierda({ className = 'icono' }: Props) {
+  return (
+    <svg className={className} {...comunes}>
+      <path d="m14 5-7 7 7 7" />
+    </svg>
+  );
+}
+
+export function IconoDerecha({ className = 'icono' }: Props) {
+  return (
+    <svg className={className} {...comunes}>
+      <path d="m10 5 7 7-7 7" />
+    </svg>
+  );
+}

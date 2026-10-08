@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { parseCsv, serializarCsv } from '../lib/csv';
-import { IconoBorrar, IconoDescargar, IconoDeshacer, IconoDuplicar } from './Iconos';
+import {
+  IconoBorrar,
+  IconoDerecha,
+  IconoDescargar,
+  IconoDeshacer,
+  IconoDuplicar,
+  IconoIzquierda,
+} from './Iconos';
 
 interface Documento {
   separador: string;
   /** La fila 0 es la cabecera; de la 1 en adelante, los datos. */
   filas: string[][];
 }
+
+/** Cómo llamar a una columna en los rótulos de ayuda cuando aún no tiene nombre. */
+const nombreColumna = (titulo: string, columna: number) =>
+  titulo.trim() ? `«${titulo.trim()}»` : `la columna ${columna + 1}`;
 
 /** Hasta aquí llega el «deshacer». Son filas de texto: no pesan nada. */
 const PASOS_ATRAS = 200;
@@ -102,6 +113,32 @@ export function EditorCsv() {
     requestAnimationFrame(() => {
       const caja = tablaRef.current;
       if (caja) caja.scrollLeft = caja.scrollWidth;
+    });
+  }
+
+  /**
+   * Intercambia una columna con su vecina. Al terminar deja el foco en el campo
+   * de la columna movida, no en el sitio de la pantalla donde estaba: así se
+   * puede seguir empujándola con Alt+flecha sin perderla de vista, y las
+   * acciones siguen asomando sobre ella y no sobre la que ha cedido el hueco.
+   */
+  function moverColumna(columna: number, direccion: -1 | 1) {
+    if (!documento) return;
+    const destino = columna + direccion;
+    if (destino < 0 || destino >= cabecera.length) return;
+
+    cambiar({
+      ...documento,
+      filas: documento.filas.map((fila) => {
+        const copia = conAncho(fila);
+        [copia[columna], copia[destino]] = [copia[destino], copia[columna]];
+        return copia;
+      }),
+    });
+
+    requestAnimationFrame(() => {
+      const campos = tablaRef.current?.querySelectorAll<HTMLInputElement>('.editor__nombre-columna');
+      campos?.[destino]?.focus();
     });
   }
 
@@ -331,13 +368,50 @@ export function EditorCsv() {
                           spellCheck={false}
                           autoComplete="off"
                           onChange={(evento) => editarCelda(0, columna, evento.target.value)}
+                          onKeyDown={(evento) => {
+                            // Con Alt se mueve la columna; sin Alt, las flechas
+                            // siguen recorriendo el texto del nombre.
+                            if (!evento.altKey) return;
+                            if (evento.key === 'ArrowLeft') {
+                              evento.preventDefault();
+                              moverColumna(columna, -1);
+                            } else if (evento.key === 'ArrowRight') {
+                              evento.preventDefault();
+                              moverColumna(columna, 1);
+                            }
+                          }}
                         />
+                      </span>
+
+                      {/* En reposo la cabecera son sólo nombres; esto asoma al
+                          apuntar la columna o al entrar en ella con el teclado. */}
+                      <span className="editor__acciones-columna no-imprimir">
+                        <button
+                          className="editor__accion"
+                          type="button"
+                          disabled={columna === 0}
+                          title={`Mover ${nombreColumna(titulo, columna)} a la izquierda (Alt+←)`}
+                          aria-label={`Mover ${nombreColumna(titulo, columna)} a la izquierda`}
+                          onClick={() => moverColumna(columna, -1)}
+                        >
+                          <IconoIzquierda />
+                        </button>
+                        <button
+                          className="editor__accion"
+                          type="button"
+                          disabled={columna === cabecera.length - 1}
+                          title={`Mover ${nombreColumna(titulo, columna)} a la derecha (Alt+→)`}
+                          aria-label={`Mover ${nombreColumna(titulo, columna)} a la derecha`}
+                          onClick={() => moverColumna(columna, 1)}
+                        >
+                          <IconoDerecha />
+                        </button>
                         {cabecera.length > 1 && (
                           <button
-                            className="editor__accion editor__accion--borrar no-imprimir"
+                            className="editor__accion editor__accion--borrar"
                             type="button"
-                            title={`Borrar la columna ${titulo.trim() || columna + 1} entera`}
-                            aria-label={`Borrar la columna ${titulo.trim() || columna + 1} entera`}
+                            title={`Borrar ${nombreColumna(titulo, columna)} entera`}
+                            aria-label={`Borrar ${nombreColumna(titulo, columna)} entera`}
                             onClick={() => borrarColumna(columna)}
                           >
                             <IconoBorrar />

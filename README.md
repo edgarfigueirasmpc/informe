@@ -111,7 +111,11 @@ queda fija arriba —y el número de fila, fijo a la izquierda— para no perder
 vista qué columna se está rellenando en una tabla de veinte.
 
 Se puede editar cualquier celda, duplicar una fila —útil para un mes nuevo, que
-se parece al anterior—, borrarla, y añadir filas y columnas. Los nombres de la
+se parece al anterior—, borrarla, y añadir, mover y borrar columnas. Las
+acciones de una columna no están siempre a la vista: asoman sobre su cabecera al
+apuntarla con el ratón o al entrar en ella con el teclado, para que en reposo la
+cabecera sean sólo nombres. Con el foco en el nombre, `Alt+←` y `Alt+→` mueven
+la columna sin soltar el teclado. Los nombres de la
 cabecera también se editan, que es lo que permite bautizar una columna nueva:
 un cliente que aparece se añade como `tipo_cliente`, igual que `puntal_finsa`.
 Ese nombre es justo lo que leen las demás pestañas, así que cambiarlo cambia

@@ -3015,16 +3015,64 @@ td:last-child .editable {
   padding-left: 0.7rem;
 }
 
-/* Nombre de la columna y su papelera, en la misma línea de la cabecera fija. */
+/* El nombre ocupa la cabecera entera; las acciones flotan encima sólo cuando
+   se apunta la columna, para que en reposo no haya más que nombres. */
 .editor__titulo-columna {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+}
+
+.editor__acciones-columna {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 0.05rem;
+  padding: 0.1rem;
+  border-radius: 4px;
+  background: var(--paper-hondo);
+  box-shadow: -10px 0 10px -5px var(--paper-hondo), 0 0 0 1px var(--line);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.editor__tabla thead th:hover .editor__acciones-columna,
+.editor__tabla thead th:focus-within .editor__acciones-columna {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sin ratón no hay «hover»: al tocar el nombre, las acciones aparecen igual. */
+@media (hover: none) {
+  .editor__acciones-columna {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    margin-top: 0.2rem;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.editor__accion:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.editor__accion:disabled:hover {
+  background: transparent;
+  color: var(--ink-faint);
 }
 
 .editor__nombre-columna {
   flex: 1;
-  min-width: 5.5rem;
+  /* Deja sitio para que la barra de acciones no se coma el nombre al asomar:
+     saber qué columna se está moviendo es justo lo que hace falta ahí. */
+  min-width: 9.5rem;
+  padding-right: 4.2rem;
   padding: 0.15rem 0.25rem;
   border: 0;
   border-radius: 2px;
