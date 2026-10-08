@@ -65,3 +65,42 @@ export function IconoCompartir({ className = 'icono' }: Props) {
     </svg>
   );
 }
+
+export function IconoDescargar({ className = 'icono' }: Props) {
+  return (
+    <svg className={className} {...comunes}>
+      <path d="M12 3v12" />
+      <path d="m8 11 4 4 4-4" />
+      <path d="M4.5 19.5h15" />
+    </svg>
+  );
+}
+
+export function IconoDeshacer({ className = 'icono' }: Props) {
+  return (
+    <svg className={className} {...comunes}>
+      <path d="M4 9h11a5 5 0 0 1 0 10h-5" />
+      <path d="m8 5-4 4 4 4" />
+    </svg>
+  );
+}
+
+export function IconoDuplicar({ className = 'icono' }: Props) {
+  return (
+    <svg className={className} {...comunes}>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
+      <path d="M15 13v4M13 15h4" />
+    </svg>
+  );
+}
+
+export function IconoBorrar({ className = 'icono' }: Props) {
+  return (
+    <svg className={className} {...comunes}>
+      <path d="M4 7h16" />
+      <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+      <path d="M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12" />
+    </svg>
+  );
+}

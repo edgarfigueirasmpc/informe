@@ -36,6 +36,7 @@ import { Compartir } from './components/Compartir';
 import { Grafica } from './components/Grafica';
 import { HistoricalView } from './components/HistoricalView';
 import { PinoView } from './components/PinoView';
+import { EditorCsv } from './components/EditorCsv';
 
 type Estado =
   | { fase: 'leyendo-url' }
@@ -43,7 +44,7 @@ type Estado =
   | { fase: 'roto' }
   | { fase: 'listo'; report: Report; overrides: Overrides };
 
-type Seccion = 'informe' | 'historico' | 'pino';
+type Seccion = 'informe' | 'historico' | 'pino' | 'editor';
 
 export default function App() {
   const [estado, setEstado] = useState<Estado>({ fase: 'leyendo-url' });
@@ -322,6 +323,15 @@ export default function App() {
         >
           Por cliente
         </button>
+        <button
+          className={`pestanas__boton ${seccion === 'editor' ? 'pestanas__boton--activa' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={seccion === 'editor'}
+          onClick={() => setSeccion('editor')}
+        >
+          Editor CSV
+        </button>
       </nav>
 
       {seccion === 'informe' && estado.fase === 'roto' && (
@@ -459,6 +469,10 @@ export default function App() {
           {hayPino && <Compartir enlace={enlace} simulando={false} tipo="pino" />}
         </>
       )}
+
+      <div hidden={seccion !== 'editor'}>
+        <EditorCsv />
+      </div>
 
       {seccion === 'informe' && <Loader onLoaded={cargar} conInforme={report !== null} />}
 

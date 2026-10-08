@@ -19,15 +19,7 @@
  * desde el detalle, que es lo único que permite repartir por cliente.
  */
 
-import {
-  MESES,
-  lineasDelCsv,
-  mesDesdeTexto,
-  normalizar,
-  numero,
-  parseRow,
-  separadorDe,
-} from './csv';
+import { MESES, mesDesdeTexto, normalizar, numero, parseCsv } from './csv';
 
 export interface PinoTipo {
   id: string;
@@ -274,11 +266,10 @@ function columnasDeDetalle(cabeceras: string[], tipos: string[]): Columna[] {
 }
 
 export function parsePinoCsv(csv: string): PinoDataset {
-  const lineas = lineasDelCsv(csv);
-  if (lineas.length < 2) throw new Error('El CSV no contiene datos de pino por cliente.');
+  const { filas } = parseCsv(csv);
+  if (filas.length < 2) throw new Error('El CSV no contiene datos de pino por cliente.');
 
-  const separador = separadorDe(lineas[0]);
-  const cabeceras = parseRow(lineas[0], separador).map(normalizar);
+  const cabeceras = filas[0].map(normalizar);
   const indice = (nombre: string) => cabeceras.indexOf(nombre);
 
   if (indice('anio') === -1 || indice('mes') === -1) {
@@ -297,8 +288,7 @@ export function parsePinoCsv(csv: string): PinoDataset {
 
   const registros: PinoRecord[] = [];
 
-  for (const linea of lineas.slice(1)) {
-    const celdas = parseRow(linea, separador);
+  for (const celdas of filas.slice(1)) {
     const anio = numero(celdas[indice('anio')]);
     const mesIndex = mesDesdeTexto(celdas[indice('mes')] ?? '');
     if (anio === null || mesIndex < 0) continue;

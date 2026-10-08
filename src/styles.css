@@ -2873,6 +2873,251 @@ td:last-child .editable {
   }
 }
 
+
+/* --- Editor de CSV ---------------------------------------------------------- */
+
+/* El editor se queda montado al cambiar de pestaña, para no perder lo que se
+   lleve a medias; `hidden` tiene que ganar a cualquier `display` heredado. */
+[hidden] {
+  display: none !important;
+}
+
+.editor {
+  padding-top: clamp(1.8rem, 4vw, 3rem);
+}
+
+.editor--vacio {
+  padding-top: 0;
+}
+
+.editor__bienvenida {
+  padding-bottom: 1.25rem;
+}
+
+.editor__zona {
+  margin-top: 0;
+}
+
+.editor__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+}
+
+.editor__cabecera .eyebrow {
+  margin: 0 0 0.35rem;
+}
+
+.editor__titulo {
+  margin: 0;
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.editor__resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.45rem 0 0;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.editor__pendiente {
+  padding: 0.1rem 0.45rem;
+  border: var(--rule) solid color-mix(in srgb, var(--naranja) 40%, transparent);
+  border-radius: 2px;
+  background: var(--accent-soft);
+  color: var(--naranja);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.editor__acciones-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* La caja manda sobre su propio desplazamiento: así la cabecera se queda
+   pegada arriba y el número de fila a la izquierda mientras se recorre una
+   tabla de veinte columnas. */
+.editor__tabla-wrap {
+  max-height: min(70vh, 40rem);
+  overflow: auto;
+  margin-top: 1.25rem;
+  background: var(--surface);
+  border: var(--rule) solid var(--line);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  overscroll-behavior: contain;
+}
+
+.editor__tabla {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.editor__tabla th,
+.editor__tabla td {
+  border-bottom: var(--rule) solid var(--line);
+  border-right: var(--rule) solid var(--line);
+  padding: 0;
+}
+
+.editor__tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.7rem 0.7rem 0.6rem;
+  background: var(--paper-hondo);
+  border-bottom: var(--rule) solid var(--line-strong);
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.editor__sin-nombre {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.editor__esquina,
+.editor__fila-cabecera {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--paper-hondo);
+  border-right: var(--rule) solid var(--line-strong);
+}
+
+.editor__esquina {
+  z-index: 3;
+}
+
+.editor__fila-cabecera {
+  /* Celda de tabla normal, no flex: así acompaña la altura de su fila cuando
+     una nota ocupa dos renglones. */
+  padding: 0 0.5rem;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-weight: 400;
+}
+
+.editor__numero {
+  display: inline-block;
+  min-width: 1.6rem;
+  margin-right: 0.35rem;
+  color: var(--ink-faint);
+  font-size: 11px;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.editor__acciones {
+  display: inline-flex;
+  gap: 0.1rem;
+  vertical-align: middle;
+}
+
+.editor__accion {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+
+.editor__accion .icono {
+  width: 14px;
+  height: 14px;
+}
+
+.editor__accion:hover {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+}
+
+.editor__accion--borrar:hover {
+  background: var(--accent-soft);
+  color: var(--naranja);
+}
+
+.editor__celda {
+  display: block;
+  width: 100%;
+  min-width: 7rem;
+  height: 2.1rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor__celda--varias-lineas {
+  height: auto;
+  min-height: 2.1rem;
+  padding: 0.35rem 0.5rem;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.35;
+}
+
+.editor__celda:focus {
+  outline: 2px solid var(--azul);
+  outline-offset: -2px;
+  background: var(--surface);
+}
+
+.editor__tabla tbody tr:hover .editor__celda {
+  background: color-mix(in srgb, var(--madera) 5%, transparent);
+}
+
+.editor__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.5rem;
+  margin-top: 1rem;
+}
+
+.editor__nota {
+  flex: 1;
+  min-width: 18rem;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .editor__celda {
+    min-width: 5.5rem;
+  }
+
+  .editor__tabla-wrap {
+    max-height: 60vh;
+  }
+}
+
 /* --- Impresión ---------------------------------------------------------------- */
 
 @media print {

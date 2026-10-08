@@ -19,6 +19,10 @@ un mes dentro de su año, con los años y los meses siempre a la vista a la vez.
 Las maderas y los clientes **se eligen a puñados**: dos maderas se comparan
 entre sí, tres clientes se miran juntos, y no elegir ninguno es verlos todos.
 
+La pestaña **Editor CSV** cierra el círculo: carga un CSV, deja corregir una
+línea, añadir una o borrarla, y lo descarga listo para volver a subirlo a las
+otras pestañas. Así actualizar un mes no obliga a abrir una hoja de cálculo.
+
 No se publica ningún dato de ejemplo: las dos pestañas aparecen vacías hasta que
 el usuario carga su CSV. Una vez cargado, el CSV y los filtros se comprimen en
 el fragmento del enlace —`#h=` el histórico y `#p=` el desglose por cliente—, igual
@@ -99,6 +103,30 @@ enseña con la primera letra en mayúscula. Ahí vive también el caso de
 
 La columna `notas` se enseña junto al mes al que pertenece, y las filas de
 meses futuros, en blanco, son huecos y no cuentan como ceros.
+
+### El editor de CSV
+
+Sirve para cualquier CSV, no sólo para los de esta aplicación. La cabecera se
+queda fija arriba —y el número de fila, fijo a la izquierda— para no perder de
+vista qué columna se está rellenando en una tabla de veinte.
+
+**La cabecera no se edita**: es lo que el resto de la aplicación usa para saber
+qué hay en cada columna, y un cambio al descuido ahí rompería la lectura. Lo que
+sí se puede es editar cualquier celda, duplicar una fila —útil para un mes nuevo,
+que se parece al anterior—, borrarla y añadir filas al final.
+
+Lo que lo hace de fiar:
+
+- **Todo es deshacible** (`Ctrl+Z` o el botón). Escribir seguido en una celda
+  cuenta como un solo paso; borrar una fila, también.
+- **Nada se pierde en silencio.** Cargar otro archivo con cambios sin descargar
+  pregunta antes, y cerrar la pestaña también. Las filas con más celdas que la
+  cabecera se enseñan enteras en vez de recortarse, y una celda con un salto de
+  línea dentro se edita en un recuadro de varias líneas, porque un campo normal
+  de HTML se come los saltos al asignarle el valor.
+- **Al descargar** se respetan el separador original y el entrecomillado de las
+  celdas que lo necesiten, con finales de línea de Windows y una marca de orden
+  de bytes por delante, que es lo que hace que Excel abra bien los acentos.
 
 ### Los cálculos
 

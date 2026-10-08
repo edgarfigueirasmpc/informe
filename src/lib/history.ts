@@ -1,12 +1,4 @@
-import {
-  MESES,
-  lineasDelCsv,
-  mesDesdeTexto,
-  normalizar,
-  numero,
-  parseRow,
-  separadorDe,
-} from './csv';
+import { MESES, mesDesdeTexto, normalizar, numero, parseCsv } from './csv';
 
 export interface HistoricalRecord {
   mes: string;
@@ -42,11 +34,10 @@ export function defaultHistoricalOptions(anios: number[]): HistoricalOptions {
 }
 
 export function parseHistoricalCsv(csv: string): HistoricalRecord[] {
-  const lineas = lineasDelCsv(csv);
-  if (lineas.length < 2) throw new Error('El CSV no contiene datos históricos.');
+  const { filas } = parseCsv(csv);
+  if (filas.length < 2) throw new Error('El CSV no contiene datos históricos.');
 
-  const separador = separadorDe(lineas[0]);
-  const cabeceras = parseRow(lineas[0], separador).map(normalizar);
+  const cabeceras = filas[0].map(normalizar);
   const indice = (nombre: string) => cabeceras.indexOf(nombre);
   const obligatorias = ['mes', 'anio', 'tn_totales'];
 
@@ -56,8 +47,7 @@ export function parseHistoricalCsv(csv: string): HistoricalRecord[] {
 
   const registros: HistoricalRecord[] = [];
 
-  for (const linea of lineas.slice(1)) {
-    const celdas = parseRow(linea, separador);
+  for (const celdas of filas.slice(1)) {
     const total = numero(celdas[indice('tn_totales')]);
     const anio = numero(celdas[indice('anio')]);
     const mesIndex = mesDesdeTexto(celdas[indice('mes')] ?? '');
