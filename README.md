@@ -110,20 +110,26 @@ Sirve para cualquier CSV, no sólo para los de esta aplicación. La cabecera se
 queda fija arriba —y el número de fila, fijo a la izquierda— para no perder de
 vista qué columna se está rellenando en una tabla de veinte.
 
-**La cabecera no se edita**: es lo que el resto de la aplicación usa para saber
-qué hay en cada columna, y un cambio al descuido ahí rompería la lectura. Lo que
-sí se puede es editar cualquier celda, duplicar una fila —útil para un mes nuevo,
-que se parece al anterior—, borrarla y añadir filas al final.
+Se puede editar cualquier celda, duplicar una fila —útil para un mes nuevo, que
+se parece al anterior—, borrarla, y añadir filas y columnas. Los nombres de la
+cabecera también se editan, que es lo que permite bautizar una columna nueva:
+un cliente que aparece se añade como `tipo_cliente`, igual que `puntal_finsa`.
+Ese nombre es justo lo que leen las demás pestañas, así que cambiarlo cambia
+cómo se interpreta la columna.
+
+El nombre del archivo se edita antes de descargar, para poder guardar una
+versión nueva sin pisar la anterior; si se deja sin extensión, se le pone `.csv`.
 
 Lo que lo hace de fiar:
 
 - **Todo es deshacible** (`Ctrl+Z` o el botón). Escribir seguido en una celda
   cuenta como un solo paso; borrar una fila, también.
 - **Nada se pierde en silencio.** Cargar otro archivo con cambios sin descargar
-  pregunta antes, y cerrar la pestaña también. Las filas con más celdas que la
-  cabecera se enseñan enteras en vez de recortarse, y una celda con un salto de
-  línea dentro se edita en un recuadro de varias líneas, porque un campo normal
-  de HTML se come los saltos al asignarle el valor.
+  pregunta antes, y cerrar la pestaña también. Borrar una columna entera se
+  deshace con sus datos dentro. Las filas con más celdas que la cabecera se
+  enseñan enteras en vez de recortarse, y una celda con un salto de línea dentro
+  se edita en un recuadro de varias líneas, porque un campo normal de HTML se
+  come los saltos al asignarle el valor.
 - **Al descargar** se respetan el separador original y el entrecomillado de las
   celdas que lo necesiten, con finales de línea de Windows y una marca de orden
   de bytes por delante, que es lo que hace que Excel abra bien los acentos.

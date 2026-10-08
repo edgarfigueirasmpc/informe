@@ -3,7 +3,6 @@ import { parseCsv, serializarCsv } from '../lib/csv';
 import { IconoBorrar, IconoDescargar, IconoDeshacer, IconoDuplicar } from './Iconos';
 
 interface Documento {
-  nombre: string;
   separador: string;
   /** La fila 0 es la cabecera; de la 1 en adelante, los datos. */
   filas: string[][];
@@ -17,17 +16,20 @@ const PASOS_ATRAS = 200;
  * que hay que corregir una línea: se carga el archivo, se toca lo que haga
  * falta y se descarga listo para volver a subirlo a las otras pestañas.
  *
- * Dos cosas lo gobiernan todo:
+ * La cabecera se queda fija arriba, porque en una tabla de veinte columnas es
+ * lo único que dice qué se está rellenando, y se puede editar: sin eso no se
+ * podría nombrar una columna nueva. A cambio, el pie avisa de que ese nombre es
+ * justo lo que leen las otras pestañas.
  *
- *  - **La cabecera no se toca.** Es lo que las otras pestañas usan para saber
- *    qué es cada columna, así que aquí sólo sirve de rótulo —fijo, siempre a la
- *    vista— y no se puede editar sin querer.
- *  - **Nada se pierde en silencio.** Cada cambio es deshacible, cargar otro
- *    archivo con trabajo sin guardar pregunta antes, y salir de la página
- *    también. Lo peor que puede hacer un editor es tragarse una fila.
+ * Lo que de verdad lo gobierna: **nada se pierde en silencio**. Cada cambio es
+ * deshacible, cargar otro archivo con trabajo sin guardar pregunta antes, y
+ * salir de la página también. Lo peor que puede hacer un editor es tragarse una
+ * fila.
  */
 export function EditorCsv() {
   const [documento, setDocumento] = useState<Documento | null>(null);
+  // Aparte del documento, para que deshacer una edición no deshaga el nombre.
+  const [nombre, setNombre] = useState('');
   const [error, setError] = useState('');
   const [arrastrando, setArrastrando] = useState(false);
   const [sinDescargar, setSinDescargar] = useState(false);
@@ -93,6 +95,24 @@ export function EditorCsv() {
     cambiar({ ...documento, filas: documento.filas.filter((_, i) => i !== indice) });
   }
 
+  function anadirColumna() {
+    if (!documento) return;
+    cambiar({ ...documento, filas: documento.filas.map((fila) => [...conAncho(fila), '']) });
+    // La columna nueva nace al final, que en una tabla ancha cae fuera de la vista.
+    requestAnimationFrame(() => {
+      const caja = tablaRef.current;
+      if (caja) caja.scrollLeft = caja.scrollWidth;
+    });
+  }
+
+  function borrarColumna(columna: number) {
+    if (!documento || cabecera.length <= 1) return;
+    cambiar({
+      ...documento,
+      filas: documento.filas.map((fila) => conAncho(fila).filter((_, i) => i !== columna)),
+    });
+  }
+
   function anadirFila() {
     if (!documento) return;
     cambiar({ ...documento, filas: [...documento.filas, cabecera.map(() => '')] });
@@ -129,7 +149,8 @@ export function EditorCsv() {
       pila.current = [];
       ultimoRetoque.current = null;
       setPuedeDeshacer(false);
-      setDocumento({ nombre: file.name, separador, filas: parejas });
+      setDocumento({ separador, filas: parejas });
+      setNombre(file.name);
       setSinDescargar(false);
       setError('');
     } catch (err) {
@@ -137,6 +158,16 @@ export function EditorCsv() {
     } finally {
       if (inputRef.current) inputRef.current.value = '';
     }
+  }
+
+  /**
+   * El nombre tal y como lo deja el usuario, pero sin barras —que el navegador
+   * tomaría por carpetas— y con la extensión puesta si se la ha dejado.
+   */
+  function nombreDeArchivo(crudo: string): string {
+    const limpio = crudo.trim().replace(/[\\/]+/g, '-');
+    if (!limpio) return 'datos.csv';
+    return /\.csv$/i.test(limpio) ? limpio : `${limpio}.csv`;
   }
 
   function descargar() {
@@ -153,7 +184,7 @@ export function EditorCsv() {
 
     const enlace = document.createElement('a');
     enlace.href = url;
-    enlace.download = documento.nombre;
+    enlace.download = nombreDeArchivo(nombre);
     enlace.rel = 'noopener';
     document.body.appendChild(enlace);
     enlace.click();
@@ -238,7 +269,15 @@ export function EditorCsv() {
             <div>
               <p className="eyebrow">Editor</p>
               <h2 id="editor-titulo" className="editor__titulo">
-                {documento.nombre}
+                <input
+                  className="editor__nombre"
+                  value={nombre}
+                  aria-label="Nombre con el que se descargará el archivo"
+                  spellCheck={false}
+                  autoComplete="off"
+                  placeholder="datos.csv"
+                  onChange={(evento) => setNombre(evento.target.value)}
+                />
               </h2>
               <p className="editor__resumen">
                 {datos.length} {datos.length === 1 ? 'fila' : 'filas'} · {cabecera.length}{' '}
@@ -282,8 +321,29 @@ export function EditorCsv() {
                     <span className="eyebrow">Fila</span>
                   </th>
                   {cabecera.map((titulo, columna) => (
-                    <th key={columna} scope="col" title={titulo}>
-                      {titulo.trim() || <span className="editor__sin-nombre">columna {columna + 1}</span>}
+                    <th key={columna} scope="col">
+                      <span className="editor__titulo-columna">
+                        <input
+                          className="editor__nombre-columna"
+                          value={titulo}
+                          aria-label={`Nombre de la columna ${columna + 1}`}
+                          placeholder={`columna ${columna + 1}`}
+                          spellCheck={false}
+                          autoComplete="off"
+                          onChange={(evento) => editarCelda(0, columna, evento.target.value)}
+                        />
+                        {cabecera.length > 1 && (
+                          <button
+                            className="editor__accion editor__accion--borrar no-imprimir"
+                            type="button"
+                            title={`Borrar la columna ${titulo.trim() || columna + 1} entera`}
+                            aria-label={`Borrar la columna ${titulo.trim() || columna + 1} entera`}
+                            onClick={() => borrarColumna(columna)}
+                          >
+                            <IconoBorrar />
+                          </button>
+                        )}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -361,10 +421,14 @@ export function EditorCsv() {
             <button className="boton" type="button" onClick={anadirFila}>
               Añadir fila
             </button>
+            <button className="boton" type="button" onClick={anadirColumna}>
+              Añadir columna
+            </button>
             <p className="editor__nota">
-              La cabecera no se puede editar: es lo que el resto de la aplicación usa para saber qué
-              hay en cada columna. Al descargar se respetan el separador original y las comillas de
-              las celdas que lo necesiten.
+              Los nombres de la cabecera son los que el resto de la aplicación lee para saber qué
+              hay en cada columna: una columna nueva de cliente se llama «tipo_cliente», como
+              «puntal_finsa». Al descargar se respetan el separador original y las comillas de las
+              celdas que lo necesiten.
             </p>
           </div>
         </>

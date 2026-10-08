@@ -2912,10 +2912,33 @@ td:last-child .editable {
 
 .editor__titulo {
   margin: 0;
+  font-weight: 300;
+}
+
+/* El nombre del archivo es un campo, no un rótulo: se cambia aquí mismo antes
+   de descargar, para no pisar el fichero anterior. */
+.editor__nombre {
+  width: min(22rem, 100%);
+  padding: 0.1rem 0.3rem;
+  margin-left: -0.3rem;
+  border: 0;
+  border-bottom: var(--rule) solid transparent;
+  border-radius: 2px;
+  background: transparent;
   font-size: clamp(1.3rem, 3vw, 1.9rem);
   font-weight: 300;
   letter-spacing: -0.02em;
-  overflow-wrap: anywhere;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.editor__nombre:hover {
+  border-bottom-color: var(--line-strong);
+}
+
+.editor__nombre:focus {
+  outline: 0;
+  background: var(--surface);
+  border-bottom-color: var(--azul);
 }
 
 .editor__resumen {
@@ -2988,9 +3011,40 @@ td:last-child .editable {
   vertical-align: bottom;
 }
 
-.editor__sin-nombre {
+.editor__tabla thead th.editor__esquina {
+  padding-left: 0.7rem;
+}
+
+/* Nombre de la columna y su papelera, en la misma línea de la cabecera fija. */
+.editor__titulo-columna {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.editor__nombre-columna {
+  flex: 1;
+  min-width: 5.5rem;
+  padding: 0.15rem 0.25rem;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.editor__nombre-columna::placeholder {
   color: var(--ink-faint);
   font-style: italic;
+}
+
+.editor__nombre-columna:focus {
+  outline: 2px solid var(--azul);
+  outline-offset: -2px;
+  background: var(--surface);
+  color: var(--ink);
 }
 
 .editor__esquina,
