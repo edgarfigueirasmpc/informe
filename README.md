@@ -158,6 +158,15 @@ día y no 50— y con él la estimación del mes. Mientras no se toque, la media
 se usa es la que firma la cabecera del PDF; en cuanto se corrige, se rehace con
 los días buenos.
 
+Los días descontados **no pasan a estar pendientes**: no se van a trabajar, son
+festivos o vacaciones, así que salen del calendario del mes. Se cuentan al lado
+—«2 festivos»— para que se vea de dónde sale la diferencia con el PDF.
+
+Corregir el calendario **no se anuncia como una simulación**, porque no lo es:
+es poner los días que de verdad se trabajaron. En su lugar se dice qué se ha
+cambiado («Calendario corregido: 18 días trabajados en vez de 20»). El aviso de
+simulación queda para lo que sí lo es: tocar o excluir clientes.
+
 El total actual, la media y la estimación de cada cliente se pueden editar. También
 se puede excluir un cliente del cálculo sin ocultar su fila. Los ajustes y la lista
 de clientes excluidos viajan en el enlace, así que se puede compartir el escenario

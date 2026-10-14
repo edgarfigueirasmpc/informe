@@ -51,10 +51,40 @@ describe('días trabajados corregidos a mano', () => {
     expect(conFestivo).toBeGreaterThan(normal);
   });
 
-  it('se marca como simulación, para poder volver al dato del PDF', () => {
-    expect(computeView(informe, { ...EMPTY_OVERRIDES, diasTrabajados: 18 }).summary.editado).toBe(
-      true,
+  it('cuenta como festivos los días que se descuentan', () => {
+    const { summary } = computeView(informe, { ...EMPTY_OVERRIDES, diasTrabajados: 18 });
+    expect(summary.festivos).toBe(2);
+    // No se van a trabajar: salen del mes en vez de pasar a «restantes».
+    expect(summary.diasRestantes).toBe(5);
+    expect(summary.diasTotales).toBe(23);
+  });
+
+  it('añadir días trabajados no inventa festivos negativos', () => {
+    expect(computeView(informe, { ...EMPTY_OVERRIDES, diasTrabajados: 22 }).summary.festivos).toBe(
+      0,
     );
+  });
+
+  it('corregir el calendario no es simular: se distinguen', () => {
+    const soloDias = computeView(informe, { ...EMPTY_OVERRIDES, diasTrabajados: 18 }).summary;
+    expect(soloDias.diasEditados).toBe(true);
+    expect(soloDias.simulado).toBe(false);
+    expect(soloDias.editado).toBe(true);
+
+    const conCliente = computeView(informe, { ...EMPTY_OVERRIDES, clients: { FINSA: 40 } }).summary;
+    expect(conCliente.diasEditados).toBe(false);
+    expect(conCliente.simulado).toBe(true);
+
+    const excluyendo = computeView(informe, { ...EMPTY_OVERRIDES, excludedClients: ['VIANA'] })
+      .summary;
+    expect(excluyendo.simulado).toBe(true);
+  });
+
+  it('tocar sólo los días restantes también es calendario, no simulación', () => {
+    const { summary } = computeView(informe, { ...EMPTY_OVERRIDES, diasRestantes: 3 });
+    expect(summary.diasEditados).toBe(true);
+    expect(summary.simulado).toBe(false);
+    expect(summary.festivos).toBe(0);
   });
 
   it('nunca divide entre cero aunque llegue un cero por el enlace', () => {

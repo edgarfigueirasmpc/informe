@@ -335,6 +335,17 @@ select {
   cursor: text;
 }
 
+/* Los días que salen del mes por festivo o vacaciones, para que se vea de
+   dónde sale la diferencia con lo que decía el PDF. */
+.periodo__festivos {
+  padding: 0.05rem 0.4rem;
+  border: var(--rule) solid color-mix(in srgb, var(--azul) 35%, transparent);
+  border-radius: 999px;
+  background: var(--azul-soft);
+  color: var(--azul);
+  font-weight: 500;
+}
+
 .periodo__dia-editable .editable {
   width: 2.6rem;
   padding: 0.1rem 0.2rem;
@@ -527,6 +538,24 @@ select {
   height: 6px;
   border-radius: 50%;
   background: var(--naranja);
+}
+
+/* Corregir el calendario es poner un dato bueno, no inventarse un escenario:
+   se cuenta en azul y en seco, sin el punto naranja de aviso. */
+.simbar__nota {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--azul);
+  font-weight: 500;
+}
+
+.simbar__nota::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--azul);
 }
 
 .simbar__espacio {

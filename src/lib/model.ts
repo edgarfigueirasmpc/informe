@@ -126,6 +126,17 @@ export interface SummaryView {
   diasTrabajados: number;
   diasRestantes: number;
   diasTotales: number;
+  /**
+   * Días que el PDF daba por trabajados y se han descontado a mano: festivos,
+   * vacaciones o paradas. No pasan a «restantes» —no se van a trabajar— sino
+   * que salen del calendario del mes.
+   */
+  festivos: number;
+  /** Se ha corregido el calendario: días trabajados o restantes. */
+  diasEditados: boolean;
+  /** Se han tocado los clientes. Esto sí es una simulación de suministro. */
+  simulado: boolean;
+  /** Cualquiera de las dos cosas: lo que habilita volver al dato del PDF. */
   editado: boolean;
 
   /**
@@ -225,6 +236,10 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
       diasTrabajados,
       diasRestantes,
       diasTotales,
+      festivos: Math.max(0, (header.diasTrabajados || 0) - diasTrabajados),
+      diasEditados:
+        overrides.diasTrabajados !== undefined || overrides.diasRestantes !== undefined,
+      simulado: clients.some((c) => c.editado) || excluidos.size > 0,
       editado:
         clients.some((c) => c.editado) ||
         overrides.diasRestantes !== undefined ||

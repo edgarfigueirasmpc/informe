@@ -8,6 +8,8 @@ import {
   type Orden,
   type Overrides,
   type Report,
+  type ReportHeader,
+  type SummaryView,
   type Species,
 } from './lib/model';
 import { fechaCorta, fechaHora } from './lib/format';
@@ -45,6 +47,29 @@ type Estado =
   | { fase: 'listo'; report: Report; overrides: Overrides };
 
 type Seccion = 'informe' | 'historico' | 'pino' | 'editor';
+
+/**
+ * Qué se ha cambiado del calendario, dicho en claro. Los días descontados no
+ * pasan a estar pendientes: son festivos o vacaciones y salen del mes.
+ */
+function textoDeDias(summary: SummaryView, header: ReportHeader): string {
+  const partes: string[] = [];
+
+  if (summary.diasTrabajados !== header.diasTrabajados) {
+    partes.push(
+      `${summary.diasTrabajados} días trabajados en vez de ${header.diasTrabajados}` +
+        (summary.festivos > 0
+          ? ` (${summary.festivos} ${summary.festivos === 1 ? 'festivo' : 'festivos'})`
+          : ''),
+    );
+  }
+
+  if (summary.diasRestantes !== header.diasRestantes) {
+    partes.push(`${summary.diasRestantes} restantes en vez de ${header.diasRestantes}`);
+  }
+
+  return `Calendario corregido: ${partes.join(' y ')}.`;
+}
 
 export default function App() {
   const [estado, setEstado] = useState<Estado>({ fase: 'leyendo-url' });
@@ -379,6 +404,12 @@ export default function App() {
                 />
                 trabajados
               </label>
+              {view.summary.festivos > 0 && (
+                <span className="periodo__festivos">
+                  {view.summary.festivos}{' '}
+                  {view.summary.festivos === 1 ? 'festivo' : 'festivos'}
+                </span>
+              )}
               <span>{view.summary.diasRestantes} restantes</span>
               <span>{view.summary.diasTotales} laborables</span>
             </div>
@@ -408,7 +439,15 @@ export default function App() {
 
             {view.summary.editado && (
               <>
-                <span className="simbar__aviso">Estás viendo una simulación.</span>
+                {/* Corregir el calendario no es simular nada: es poner los días
+                    que de verdad se trabajaron. Se dice lo que se ha cambiado,
+                    no que lo que se ve sea inventado. */}
+                {view.summary.diasEditados && (
+                  <span className="simbar__nota">{textoDeDias(view.summary, report.header)}</span>
+                )}
+                {view.summary.simulado && (
+                  <span className="simbar__aviso">Estás viendo una simulación.</span>
+                )}
                 <button
                   className="linkish simbar__espacio"
                   type="button"
@@ -434,7 +473,7 @@ export default function App() {
             onToggleClient={alternarCliente}
           />
 
-          <Compartir enlace={enlace} simulando={view.summary.editado} />
+          <Compartir enlace={enlace} simulando={view.summary.simulado} />
 
           <div className="notas">
             <p className="notas__titulo eyebrow">Cómo se calcula</p>
