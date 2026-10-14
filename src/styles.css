@@ -320,9 +320,26 @@ select {
 
 .periodo__dias {
   display: flex;
+  align-items: center;
   gap: 1.5rem;
   font-size: 12px;
   color: var(--ink-soft);
+}
+
+/* El número se escribe aquí mismo, pero sin disfrazarse de formulario: en
+   reposo pasa por un dato más de la línea y sólo se marca al apuntarlo. */
+.periodo__dia-editable {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  cursor: text;
+}
+
+.periodo__dia-editable .editable {
+  width: 2.6rem;
+  padding: 0.1rem 0.2rem;
+  font-size: 12px;
+  text-align: right;
 }
 
 /* --- Resumen superior ------------------------------------------------------ */

@@ -361,7 +361,24 @@ export default function App() {
               {fechaCorta(report.header.desde)} — {fechaCorta(report.header.hasta)}
             </h2>
             <div className="periodo__dias">
-              <span>{view.summary.diasTrabajados} trabajados</span>
+              {/* Editable: el PDF cuenta los días del calendario y no sabe de
+                  festivos, y ese número es el divisor de todas las medias. */}
+              <label className="periodo__dia-editable">
+                <EditableNumber
+                  value={view.summary.diasTrabajados}
+                  base={report.header.diasTrabajados}
+                  editado={overrides.diasTrabajados !== undefined}
+                  decimals={0}
+                  label="Días trabajados"
+                  onChange={(v) =>
+                    cambiarOverrides((previo) => ({
+                      ...previo,
+                      diasTrabajados: v === null ? undefined : Math.max(1, Math.round(v)),
+                    }))
+                  }
+                />
+                trabajados
+              </label>
               <span>{view.summary.diasRestantes} restantes</span>
               <span>{view.summary.diasTotales} laborables</span>
             </div>

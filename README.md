@@ -150,6 +150,14 @@ Debajo se conserva la cifra original de la cabecera del PDF y su diferencia
 respecto al cálculo. No coinciden —el informe no cuadra consigo mismo— y se
 muestran las dos para mantener la trazabilidad.
 
+Los **días trabajados** se escriben en la propia línea del periodo. El PDF
+cuenta los días del calendario y no sabe de festivos, y ese número es el divisor
+de todas las medias: al descontar un día, las toneladas ya producidas no se
+mueven, pero el ritmo diario sube —las mismas 1.000 TN en 18 días son 55,56 al
+día y no 50— y con él la estimación del mes. Mientras no se toque, la media que
+se usa es la que firma la cabecera del PDF; en cuanto se corrige, se rehace con
+los días buenos.
+
 El total actual, la media y la estimación de cada cliente se pueden editar. También
 se puede excluir un cliente del cálculo sin ocultar su fila. Los ajustes y la lista
 de clientes excluidos viajan en el enlace, así que se puede compartir el escenario

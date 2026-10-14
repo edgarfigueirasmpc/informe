@@ -64,6 +64,8 @@ export interface Overrides {
   excludedClients?: string[];
   /** Días laborables restantes, si se quiere forzar otro escenario. */
   diasRestantes?: number;
+  /** Días ya trabajados, para descontar un festivo que el PDF no sabe. */
+  diasTrabajados?: number;
 }
 
 export const EMPTY_OVERRIDES: Overrides = { clients: {}, excludedClients: [] };
@@ -157,7 +159,8 @@ function round3(n: number): number {
 
 export function computeView(report: Report, overrides: Overrides): ReportView {
   const { header } = report;
-  const diasTrabajados = header.diasTrabajados || 1;
+  // Nunca cero: es el divisor de todas las medias.
+  const diasTrabajados = Math.max(1, overrides.diasTrabajados ?? header.diasTrabajados ?? 1);
   const diasRestantes = overrides.diasRestantes ?? header.diasRestantes;
   const diasTotales = diasTrabajados + diasRestantes;
   const excluidos = new Set(overrides.excludedClients ?? []);
@@ -190,7 +193,14 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
   });
 
   const deltaMedia = clients.reduce((acc, c) => acc + (c.media - c.mediaBase), 0);
-  const mediaBase = header.mediaDia || header.totalMes / diasTrabajados;
+
+  // La media que firma el PDF vale mientras los días trabajados sean los suyos.
+  // Al descontar un festivo hay que rehacerla: el mes lleva las mismas
+  // toneladas repartidas entre menos días, así que el ritmo diario sube.
+  const mediaBase =
+    overrides.diasTrabajados !== undefined
+      ? header.totalMes / diasTrabajados
+      : header.mediaDia || header.totalMes / diasTrabajados;
   const media = mediaBase + deltaMedia;
 
   // La estimación base se recalcula en vez de usar la del PDF para que
@@ -218,6 +228,7 @@ export function computeView(report: Report, overrides: Overrides): ReportView {
       editado:
         clients.some((c) => c.editado) ||
         overrides.diasRestantes !== undefined ||
+        overrides.diasTrabajados !== undefined ||
         excluidos.size > 0,
 
       // Las tres reaccionan a las simulaciones, porque la media simulada se
