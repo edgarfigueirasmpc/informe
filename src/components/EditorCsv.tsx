@@ -1,3 +1,5 @@
+import { CloudFiles } from './Cloud';
+import type { CloudSource } from '../lib/cloud';
 import { useEffect, useRef, useState } from 'react';
 import { parseCsv, serializarCsv } from '../lib/csv';
 import {
@@ -40,6 +42,11 @@ const PASOS_ATRAS = 200;
 export function EditorCsv() {
   const [documento, setDocumento] = useState<Documento | null>(null);
   // Aparte del documento, para que deshacer una edición no deshaga el nombre.
+  const [cloudSource, setCloudSource] = useState<CloudSource | null>(null);
+  const currentDocument = useRef(documento);
+  currentDocument.current = documento;
+  const generation = useRef(0);
+  const savedSnapshot = useRef<{ document: Documento | null; generation: number } | null>(null);
   const [nombre, setNombre] = useState('');
   const [error, setError] = useState('');
   const [arrastrando, setArrastrando] = useState(false);
@@ -160,11 +167,11 @@ export function EditorCsv() {
     });
   }
 
-  async function cargar(file: File | undefined) {
+  async function cargar(file: File | undefined, source?: CloudSource) {
     if (!file) return;
     if (
       sinDescargar &&
-      !confirm('Tienes cambios sin descargar. ¿Cargar otro archivo y perderlos?')
+      !confirm('Tienes cambios sin guardar. ¿Cargar otro archivo y perderlos?')
     ) {
       if (inputRef.current) inputRef.current.value = '';
       return;
@@ -186,6 +193,8 @@ export function EditorCsv() {
       pila.current = [];
       ultimoRetoque.current = null;
       setPuedeDeshacer(false);
+      generation.current++;
+      setCloudSource(source ?? null);
       setDocumento({ separador, filas: parejas });
       setNombre(file.name);
       setSinDescargar(false);
@@ -256,6 +265,18 @@ export function EditorCsv() {
         }
       }}
     >
+      <CloudFiles extension="csv" source={cloudSource}
+        onOpen={cargar}
+        getFile={documento ? () => {
+          savedSnapshot.current = { document: documento, generation: generation.current };
+          const filas = documento.filas.filter((fila, i) => i === 0 || fila.some(celda => celda.trim() !== ''));
+          return new File(['\uFEFF' + serializarCsv(filas, documento.separador)], nombreDeArchivo(nombre), { type: 'text/csv;charset=utf-8' });
+        } : undefined}
+        onSaved={source => {
+          if (savedSnapshot.current?.generation !== generation.current) return;
+          setCloudSource(source);
+          if (savedSnapshot.current.document === currentDocument.current) setSinDescargar(false);
+        }} />
       <input
         ref={inputRef}
         type="file"
@@ -273,7 +294,7 @@ export function EditorCsv() {
             <p>
               Para cambiar una línea sin salir de aquí: se carga el archivo, se corrige lo que haga
               falta y se descarga listo para volver a subirlo al histórico o al desglose por
-              cliente. Se abre en tu navegador; ni se sube ni se guarda en ningún sitio.
+              cliente. Se abre en tu navegador; solo se guarda en MPC Cloud cuando lo eliges.
             </p>
           </div>
 
@@ -319,7 +340,7 @@ export function EditorCsv() {
               <p className="editor__resumen">
                 {datos.length} {datos.length === 1 ? 'fila' : 'filas'} · {cabecera.length}{' '}
                 {cabecera.length === 1 ? 'columna' : 'columnas'} · separador «{documento.separador}»
-                {sinDescargar && <span className="editor__pendiente">Sin descargar</span>}
+                {sinDescargar && <span className="editor__pendiente">Cambios sin guardar</span>}
               </p>
             </div>
 

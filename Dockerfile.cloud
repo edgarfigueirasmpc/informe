@@ -1,0 +1,5 @@
+# Build MPC Cloud from feat/informes-integration first, then bundle the tested static frontend.
+ARG MPC_CLOUD_IMAGE=mpc-cloud:informes-base
+FROM ${MPC_CLOUD_IMAGE}
+COPY --chown=568:568 dist-cloud/ /app/informes/
+ENV INFORMES_STATIC_DIR=/app/informes

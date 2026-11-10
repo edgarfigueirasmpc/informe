@@ -1,3 +1,4 @@
+import { CloudFiles } from './Cloud';
 import { useRef, useState } from 'react';
 import type { Report } from '../lib/model';
 import { fechaCorta } from '../lib/format';
@@ -22,6 +23,7 @@ type Estado =
 export function Loader({ onLoaded, conInforme }: Props) {
   const [estado, setEstado] = useState<Estado>({ fase: 'reposo' });
   const [avisos, setAvisos] = useState<string[]>([]);
+  const [archivoCloud, setArchivoCloud] = useState<File | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +43,7 @@ export function Loader({ onLoaded, conInforme }: Props) {
     try {
       const { parsePdfFile } = await import('../lib/pdf');
       const { report, warnings } = await parsePdfFile(file);
+      setArchivoCloud(file);
       setAvisos(warnings);
       onLoaded(report);
       setEstado({
@@ -59,6 +62,7 @@ export function Loader({ onLoaded, conInforme }: Props) {
 
   return (
     <section className={`cargador no-imprimir ${conInforme ? 'cargador--secundario' : ''}`}>
+      <CloudFiles extension="pdf" onOpen={procesar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <div className="eyebrow">{conInforme ? 'Cargar otro informe' : 'Cargar el informe'}</div>
 
       <div
@@ -92,7 +96,7 @@ export function Loader({ onLoaded, conInforme }: Props) {
         </button>
 
         <p className="zona__pista">
-          O arrástralo aquí. Se lee en tu navegador; ni se sube ni se guarda en ningún sitio.
+          O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
         </p>
       </div>
 

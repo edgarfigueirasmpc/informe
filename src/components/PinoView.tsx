@@ -1,3 +1,4 @@
+import { CloudFiles } from './Cloud';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { MESES_CORTOS } from '../lib/csv';
 import { cuotaPct, tn, tnRedondo } from '../lib/format';
@@ -54,6 +55,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
   const [origen, setOrigen] = useState('');
   const [error, setError] = useState('');
   const [options, setOptions] = useState<PinoOptions>(() => defaultPinoOptions([]));
+  const [archivoCloud, setArchivoCloud] = useState<File | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -85,6 +87,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
       setDataset(nuevo);
       setCsv(texto);
       setOrigen(file.name);
+      setArchivoCloud(file);
       setOptions(defaultPinoOptions(nuevo.anios));
       setError('');
     } catch (err) {
@@ -96,6 +99,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
 
   return (
     <section className={`pino ${dataset ? '' : 'pino--vacio'}`} aria-labelledby="pino-titulo">
+      <CloudFiles extension="csv" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <input
         ref={inputRef}
         type="file"
@@ -139,7 +143,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
               Elegir el CSV
             </button>
             <p className="zona__pista">
-              O arrástralo aquí. Se lee en tu navegador; ni se sube ni se guarda en ningún sitio.
+              O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
             </p>
           </div>
         </>

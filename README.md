@@ -1,5 +1,8 @@
 # Informe de toneladas
 
+La integración opcional con MPC Cloud se sirve en `/informes/` del mismo origen que Cloud. Reutiliza sus carpetas, sesión y permisos de Django, sin Files API ni almacenamiento adicional. Véase [arquitectura, pruebas y despliegue](docs/MPC-CLOUD.md).
+
+
 Aplicación para consultar el informe diario de toneladas por cliente y
 **simular escenarios de suministro** sobre la marcha: se cambia la media diaria
 de un cliente y la estimación mensual del conjunto se recalcula al instante.
@@ -29,7 +32,7 @@ el fragmento del enlace —`#h=` el histórico y `#p=` el desglose por cliente�
 que el informe diario viaja en `#i=`. El fragmento no se envía al servidor;
 quien no tenga el enlace no recibe los datos.
 
-**No hay servidor, ni base de datos, ni contraseñas.** Se carga el PDF del día
+**El modo local no necesita servidor, base de datos ni contraseñas.** Se carga el PDF del día
 y el informe entero pasa a viajar dentro del enlace: compartir la dirección es
 compartir el informe.
 

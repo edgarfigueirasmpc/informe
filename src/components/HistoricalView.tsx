@@ -1,3 +1,4 @@
+import { CloudFiles } from './Cloud';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { tn, tnRedondo } from '../lib/format';
 import { MESES_CORTOS } from '../lib/csv';
@@ -34,6 +35,7 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
   const [error, setError] = useState('');
   const [origen, setOrigen] = useState('');
   const [options, setOptions] = useState<HistoricalOptions>(() => defaultHistoricalOptions([]));
+  const [archivoCloud, setArchivoCloud] = useState<File | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +73,7 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
       setDatos(nuevosDatos);
       setCsv(csv);
       setOrigen(file.name);
+      setArchivoCloud(file);
       setOptions(defaultHistoricalOptions(anios));
       setError('');
     } catch (err) {
@@ -85,6 +88,7 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
       className={`historico ${datos.length === 0 ? 'historico--vacio' : ''}`}
       aria-labelledby="historico-titulo"
     >
+      <CloudFiles extension="csv" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <input
         ref={inputRef}
         type="file"
@@ -126,7 +130,7 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
               Elegir el CSV histórico
             </button>
             <p className="zona__pista">
-              O arrástralo aquí. Se lee en tu navegador; ni se sube ni se guarda en ningún sitio.
+              O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
             </p>
           </div>
         </>

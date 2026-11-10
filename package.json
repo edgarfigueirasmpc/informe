@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 8788",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:cloud": "tsc -b && VITE_MPC_CLOUD=true vite build --outDir dist-cloud",
+    "test:cloud": "node scripts/test-cloud.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^4.10.38",
