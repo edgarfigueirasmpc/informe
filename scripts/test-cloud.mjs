@@ -5,7 +5,12 @@ import { readFile, mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const require = createRequire(new URL('../../mpc-cloud/package.json', import.meta.url));
 const { chromium } = require('@playwright/test');
-const origin = 'http://localhost:8180';
+// Por defecto, el entorno local con Django simulado. En la aceptación de staging
+// se apunta al contenedor real con CLOUD_ORIGIN/CLOUD_USER/CLOUD_PASSWORD, para no
+// tener una segunda copia de esta prueba.
+const origin = process.env.CLOUD_ORIGIN ?? 'http://localhost:8180';
+const usuario = process.env.CLOUD_USER ?? 'ana';
+const clave = process.env.CLOUD_PASSWORD ?? 'secreto-123';
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext();
 const page = await context.newPage();
@@ -60,8 +65,8 @@ try {
   assert(await guest.locator('.historico').innerText().then(t => !t.includes('Carga el CSV histórico')));
   await guest.close();
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
-  await page.getByLabel('Usuario', { exact: true }).fill('ana');
-  await page.getByLabel('Contraseña', { exact: true }).fill('secreto-123');
+  await page.getByLabel('Usuario', { exact: true }).fill(usuario);
+  await page.getByLabel('Contraseña', { exact: true }).fill(clave);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await wait(page.getByText('MPC Cloud · ana', { exact: true }));
   const session = await (await api('session')).json(); const csrf = session.csrfToken;
