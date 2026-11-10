@@ -68,7 +68,7 @@ try {
   await page.getByLabel('Usuario', { exact: true }).fill(usuario);
   await page.getByLabel('Contraseña', { exact: true }).fill(clave);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await wait(page.getByText('MPC Cloud · ana', { exact: true }));
+  await wait(page.getByText(`MPC Cloud · ${usuario}`, { exact: true }));
   const session = await (await api('session')).json(); const csrf = session.csrfToken;
   await api('fs/folders', 'POST', { path: '/', name: folder.slice(1) }, csrf);
   await upload('datos.csv', csv, csrf);
@@ -139,7 +139,7 @@ try {
   await cloud.close();
   await page.getByRole('tab', { name: 'Editor CSV', exact: true }).click();
   await page.screenshot({ path: '.cloud-test/editor.png', fullPage: true });
-  await page.reload(); await wait(page.getByText('MPC Cloud · ana', { exact: true }));
+  await page.reload(); await wait(page.getByText(`MPC Cloud · ${usuario}`, { exact: true }));
   assert.deepEqual(errors, []);
   console.log('PASS: anonymous local CSV/share, login, same session across all views/reload, Cloud CSV/PDF read, ETag replacement/conflict, save as CSV/PDF, edits during upload, visibility in normal MPC Cloud UI, no CSP/page errors.');
 } catch (e) { console.error((await page.locator('body').innerText()).slice(-7000)); await mkdir('.cloud-test', { recursive: true }); await page.screenshot({ path: '.cloud-test/failure.png', fullPage: true }); throw e; } finally { await browser.close(); }
