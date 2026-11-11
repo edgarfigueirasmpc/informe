@@ -10,17 +10,16 @@ import { childPath, cloudEnabled, cloudJson, cloudLogin, cloudLogout, cloudSessi
  */
 const Context = createContext<{
   session: CloudSession | null; login: (despues?: () => void) => void;
+  logout: () => Promise<void>;
   carpeta: string; setCarpeta: (ruta: string) => void;
-}>({ session: null, login() {}, carpeta: '/', setCarpeta() {} });
+}>({ session: null, login() {}, async logout() {}, carpeta: '/', setCarpeta() {} });
 
 /**
- * No hay nada de MPC Cloud en pantalla hasta que hace falta. La mayoría de la
- * gente entra aquí con un archivo suyo y no necesita cuenta, así que un botón
- * de «Iniciar sesión» permanente arriba sólo era ruido: se pide la contraseña
- * cuando pulsas «Abrir desde MPC Cloud», y entonces se sigue con lo que
- * ibas a hacer. Con la sesión abierta sí aparece la barra, porque entonces
- * importa saber con qué cuenta estás guardando en las carpetas de la empresa,
- * y poder salir.
+ * MPC Cloud no ocupa nada de la pantalla hasta que hace falta. La mayoría de la
+ * gente entra aquí con un archivo suyo y no necesita cuenta, así que ni botón
+ * de acceso ni barra de sesión: la contraseña se pide al pulsar «Abrir desde
+ * MPC Cloud» y, al entrar, se sigue con lo que ibas a hacer. Con quién estás
+ * dentro y la salida viven donde importan, dentro de la ventana de Cloud.
  */
 export function CloudProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<CloudSession | null>(null);
@@ -34,19 +33,15 @@ export function CloudProvider({ children }: { children: ReactNode }) {
     pendiente.current = despues ?? null;
     setError(''); setShowLogin(true);
   }
-  return <Context.Provider value={{ session, login: pedirAcceso, carpeta, setCarpeta }}>
-    {session && <div className="cloud-bar no-imprimir">
-      <span>MPC Cloud · {session.user.username}</span>
-      <button className="boton" disabled={busy} onClick={async () => {
-        setBusy(true); setError('');
-        try { await cloudLogout(session.csrfToken); setSession(null); }
-        catch (e) { setError((e as Error).message); } finally { setBusy(false); }
-      }}>Cerrar sesión</button>
-      {error && <p role="alert">{error}</p>}
-    </div>}
-    {showLogin && <CloudDialog title="Iniciar sesión en MPC Cloud" close={() => { pendiente.current = null; setShowLogin(false); }}>
-      <p>El uso local y los enlaces compartidos no requieren iniciar sesión.</p>
-      <form onSubmit={async e => {
+  async function salir() {
+    if (!session) return;
+    setBusy(true); setError('');
+    try { await cloudLogout(session.csrfToken); setSession(null); }
+    catch (e) { setError((e as Error).message); throw e; } finally { setBusy(false); }
+  }
+  return <Context.Provider value={{ session, login: pedirAcceso, logout: salir, carpeta, setCarpeta }}>
+    {showLogin && <CloudDialog title="Entrar en MPC Cloud" close={() => { pendiente.current = null; setShowLogin(false); }}>
+      <form className="cloud-form" onSubmit={async e => {
         e.preventDefault(); const form = e.currentTarget; const data = new FormData(form);
         setBusy(true); setError('');
         try {
@@ -56,20 +51,34 @@ export function CloudProvider({ children }: { children: ReactNode }) {
           const seguir = pendiente.current; pendiente.current = null; seguir?.();
         } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
       }}>
-        <label>Usuario <input name="username" autoComplete="username" required /></label>
+        <p className="cloud-dialog__nota">Para trabajar con los documentos de la empresa. Los archivos de tu equipo y los enlaces compartidos no necesitan cuenta.</p>
+        <label>Usuario <input name="username" autoComplete="username" required autoFocus /></label>
         <label>Contraseña <input name="password" type="password" autoComplete="current-password" required /></label>
-        <button className="boton" disabled={busy}>Entrar</button>
         {error && <p role="alert">{error}</p>}
+        <div className="cloud-dialog__acciones">
+          <button className="boton boton--primario" disabled={busy}>Entrar</button>
+        </div>
       </form>
     </CloudDialog>}
     {children}
   </Context.Provider>;
 }
-function CloudDialog({ title, close, children }: { title: string; close: () => void; children: ReactNode }) {
+
+/**
+ * La cruz cierra y es lo único fijo: cada ventana pone debajo los botones que
+ * le correspondan. Antes el «Cerrar» se añadía siempre al final, detrás del
+ * botón de la acción, y quedaban los dos apilados como si fueran lo mismo.
+ */
+function CloudDialog({ title, close, children, pie }: { title: string; close: () => void; children: ReactNode; pie?: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { ref.current?.showModal(); }, []);
   return <dialog className="cloud-dialog" ref={ref} onCancel={e => { e.preventDefault(); close(); }}>
-    <h2>{title}</h2>{children}<button className="boton" onClick={close}>Cerrar</button>
+    <header className="cloud-dialog__cabecera">
+      <h2>{title}</h2>
+      <button type="button" className="cloud-dialog__cerrar" aria-label="Cerrar" onClick={close}>×</button>
+    </header>
+    {children}
+    {pie && <footer className="cloud-dialog__pie">{pie}</footer>}
   </dialog>;
 }
 
@@ -94,7 +103,7 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
    */
   solo?: 'abrir' | 'guardar';
 }) {
-  const { session, login, carpeta: path, setCarpeta: setPath } = useContext(Context);
+  const { session, login, logout, carpeta: path, setCarpeta: setPath } = useContext(Context);
   const [mode, setMode] = useState<'open' | 'save' | null>(null);
   const [entries, setEntries] = useState<CloudEntry[]>([]);
   const [truncated, setTruncated] = useState(false);
@@ -160,9 +169,20 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
     {verGuardar && source && <span>Origen: {source.path}</span>}
     {status && <p role="status">{status}</p>}
     {error && !mode && <p role="alert">{error}</p>}
-    {mode && <CloudDialog title={mode === 'open' ? 'Abrir desde MPC Cloud' : 'Guardar como en MPC Cloud'} close={() => { if (!busy) setMode(null); }}>
-      <p>Carpeta: {path}</p>
-      <button className="boton" disabled={busy || path === '/'} onClick={() => setPath(path.slice(0, path.lastIndexOf('/')) || '/')}>Subir carpeta</button>
+    {mode && <CloudDialog
+      title={mode === 'open' ? 'Abrir desde MPC Cloud' : 'Guardar como en MPC Cloud'}
+      close={() => { if (!busy) setMode(null); }}
+      pie={session && <>
+        <span className="cloud-dialog__cuenta">MPC Cloud · {session.user.username}</span>
+        <button type="button" className="boton" disabled={busy} onClick={async () => {
+          try { await logout(); setMode(null); } catch { /* el error se enseña en la barra de acciones */ }
+        }}>Cerrar sesión</button>
+      </>}
+    >
+      <div className="cloud-dialog__ruta">
+        <button className="boton" disabled={busy || path === '/'} onClick={() => setPath(path.slice(0, path.lastIndexOf('/')) || '/')}>Subir carpeta</button>
+        <p>Carpeta: {path}</p>
+      </div>
       {loading && <p role="status">Cargando carpetas…</p>}
       <ul className="cloud-files">{entries.filter(e => e.type === 'dir' || e.name.toLowerCase().endsWith(`.${extension}`)).map(entry => <li key={entry.name}>
         <button className="boton" disabled={busy || (mode === 'save' && entry.type === 'file')} onClick={async () => {
@@ -175,13 +195,15 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
       </li>)}</ul>
       {truncated && <p>Listado limitado por MPC Cloud. Utiliza una subcarpeta para localizar el archivo.</p>}
       {!loading && !entries.length && !error && <p>Carpeta vacía.</p>}
-      {mode === 'save' && <form onSubmit={e => { e.preventDefault(); void save(childPath(path, name)); }}>
+      {mode === 'save' && <form className="cloud-form" onSubmit={e => { e.preventDefault(); void save(childPath(path, name)); }}>
         <label>Nombre <input required value={name} disabled={busy} onChange={e => setName(e.target.value)} pattern={`[^/\\\\]+\\.${extension}`} /></label>
         <label>Visibilidad <select value={visibility} disabled={busy} onChange={e => setVisibility(e.target.value as 'public' | 'private')}>
           <option value="private">Privado</option><option value="public">Usuarios con acceso a la carpeta</option>
         </select></label>
-        <p>Si el nombre ya existe, no se reemplazará. Elige otro nombre.</p>
-        <button className="boton" disabled={busy || loading}>Guardar en esta carpeta</button>
+        <p className="cloud-dialog__nota">Si el nombre ya existe, no se reemplazará. Elige otro nombre.</p>
+        <div className="cloud-dialog__acciones">
+          <button className="boton boton--primario" disabled={busy || loading}>Guardar en esta carpeta</button>
+        </div>
       </form>}
       {busy && <p role="status">Transfiriendo…</p>}
       {error && <p role="alert">{error}</p>}

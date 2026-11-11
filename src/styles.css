@@ -3369,15 +3369,118 @@ td:last-child .editable {
 }
 
 /* Corporate storage controls are independent of the local report workflow. */
-.cloud-bar, .cloud-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin: 1rem auto; max-width: 1200px; padding: .6rem; }
+.cloud-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin: 1rem auto; max-width: 1200px; padding: .6rem; }
 /* El botón de Cloud va dentro del recuadro de carga, así que su contenedor no
    aporta ni margen ni ancho propios: es un botón más de la fila. Va después de
    la regla de arriba porque, a igualdad de especificidad, manda la última. */
 .cloud-actions--en-zona { margin: 0; padding: 0; max-width: none; gap: 0; }
-.cloud-dialog { color: var(--texto, #18382e); background: var(--fondo, #fff); border: 1px solid #83988a; border-radius: 12px; padding: 1.5rem; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
-.cloud-dialog::backdrop { background: #10251b88; }
-.cloud-dialog label { display: block; margin: .8rem 0; }
-.cloud-dialog input, .cloud-dialog select { display: block; width: 100%; padding: .6rem; color: inherit; background: inherit; border: 1px solid #83988a; border-radius: 4px; }
+/* La ventana de MPC Cloud es parte de Informes, así que lleva sus colores y su
+   tipografía, no los del otro proyecto de donde salió este diálogo. */
+.cloud-dialog {
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--rule) solid var(--line-strong);
+  border-radius: var(--radio);
+  padding: 0;
+  width: min(560px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  box-shadow: var(--sombra-alta);
+}
+.cloud-dialog::backdrop { background: rgba(22, 21, 15, 0.45); }
+
+.cloud-dialog__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 0.9rem;
+  border-bottom: var(--rule) solid var(--line);
+}
+.cloud-dialog__cabecera h2 { margin: 0; font-size: 17px; letter-spacing: 0.01em; }
+
+/* Cuadrada y discreta: cierra, no es una acción de la ventana. */
+.cloud-dialog__cerrar {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink-soft);
+  background: none;
+  border: var(--rule) solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.cloud-dialog__cerrar:hover { color: var(--ink); border-color: var(--line-strong); }
+
+.cloud-dialog > :not(.cloud-dialog__cabecera):not(.cloud-dialog__pie) { margin: 0.9rem 1.5rem; }
+.cloud-dialog > *:last-child:not(.cloud-dialog__pie) { margin-bottom: 1.5rem; }
+
+.cloud-dialog__nota { font-size: 12px; color: var(--ink-soft); }
+
+.cloud-dialog__ruta { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.cloud-dialog__ruta p { margin: 0; font-size: 12px; color: var(--ink-soft); }
+
+.cloud-form label {
+  display: block;
+  margin: 0 0 0.9rem;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.cloud-dialog input, .cloud-dialog select {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+  background: var(--paper);
+  border: var(--rule) solid var(--line-strong);
+  border-radius: 2px;
+}
+.cloud-dialog input:focus-visible, .cloud-dialog select:focus-visible {
+  outline: 2px solid var(--naranja);
+  outline-offset: 1px;
+}
+
+/* En su propia fila y a la derecha: la acción de la ventana se separa de lo
+   que hay encima en vez de quedar pegada debajo del último campo. */
+.cloud-dialog__acciones { display: flex; justify-content: flex-end; gap: 0.6rem; }
+
+.cloud-dialog__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  padding: 0.9rem 1.5rem;
+  border-top: var(--rule) solid var(--line);
+  background: var(--paper);
+}
+.cloud-dialog__cuenta { font-size: 12px; color: var(--ink-soft); }
+
+/* Una lista de archivos se lee en una columna, de izquierda a derecha: en
+   mayúsculas y centrados como el resto de botones parecían una botonera. */
 .cloud-files { list-style: none; padding: 0; max-height: 35vh; overflow: auto; }
-.cloud-files li { margin: .35rem 0; }
+.cloud-files li { margin: 0; }
+.cloud-files .boton {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0.55rem 0.7rem;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+  border-color: transparent;
+  border-bottom-color: var(--line);
+  border-radius: 0;
+}
+.cloud-files .boton:disabled { color: var(--ink-faint); opacity: 1; }
 .cloud-dialog [role=alert], .cloud-actions [role=alert] { color: #b3261e; }

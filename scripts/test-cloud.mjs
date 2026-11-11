@@ -206,7 +206,15 @@ try {
   if (cruzado) await cloudCtx.close();
   await page.getByRole('tab', { name: 'Editor CSV', exact: true }).click();
   await page.screenshot({ path: '.cloud-test/editor.png', fullPage: true });
-  await page.reload(); await wait(page.getByText(`MPC Cloud · ${usuario}`, { exact: true }));
+  // La sesión sobrevive a la recarga: al pedir Cloud otra vez no vuelve a pedir
+  // la contraseña, va directo a las carpetas y dice con qué cuenta estás.
+  await page.reload();
+  await page.getByRole('tab', { name: 'Histórico', exact: true }).click();
+  await page.getByRole('button', { name: 'Abrir desde MPC Cloud', exact: true }).filter({ visible: true }).click();
+  await wait(page.getByText(`MPC Cloud · ${usuario}`, { exact: true }));
+  assert.equal(await page.getByLabel('Contraseña', { exact: true }).count(), 0, 'no debería volver a pedir la contraseña');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
   if (lector) {
     // Una cuenta de solo lectura entra, pero no escribe: lo decide Django, no
     // el frontend. Contexto aparte para no tocar la sesión de la prueba.
