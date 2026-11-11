@@ -9,30 +9,42 @@ import { childPath, cloudEnabled, cloudJson, cloudLogin, cloudLogout, cloudSessi
  * guardar sean instancias distintas.
  */
 const Context = createContext<{
-  session: CloudSession | null; login: () => void;
+  session: CloudSession | null; login: (despues?: () => void) => void;
   carpeta: string; setCarpeta: (ruta: string) => void;
 }>({ session: null, login() {}, carpeta: '/', setCarpeta() {} });
+
+/**
+ * No hay nada de MPC Cloud en pantalla hasta que hace falta. La mayoría de la
+ * gente entra aquí con un archivo suyo y no necesita cuenta, así que un botón
+ * de «Iniciar sesión» permanente arriba sólo era ruido: se pide la contraseña
+ * cuando pulsas «Abrir desde MPC Cloud», y entonces se sigue con lo que
+ * ibas a hacer. Con la sesión abierta sí aparece la barra, porque entonces
+ * importa saber con qué cuenta estás guardando en las carpetas de la empresa,
+ * y poder salir.
+ */
 export function CloudProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<CloudSession | null>(null);
   const [carpeta, setCarpeta] = useState('/');
   const [showLogin, setShowLogin] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const pendiente = useRef<(() => void) | null>(null);
   useEffect(() => { void cloudSession().then(setSession); }, []);
-  return <Context.Provider value={{ session, login: () => setShowLogin(true), carpeta, setCarpeta }}>
-    <div className="cloud-bar no-imprimir">
-      {cloudEnabled ? <>
-        <span>{session ? `MPC Cloud · ${session.user.username}` : 'MPC Cloud · sesión opcional'}</span>
-        <button className="boton" onClick={() => { setError(''); setShowLogin(true); }}> {session ? 'Renovar sesión' : 'Iniciar sesión'}</button>
-        {session && <button className="boton" disabled={busy} onClick={async () => {
-          setBusy(true); setError('');
-          try { await cloudLogout(session.csrfToken); setSession(null); }
-          catch (e) { setError((e as Error).message); } finally { setBusy(false); }
-        }}>Cerrar sesión</button>}
-      </> : <a onClick={e => { e.currentTarget.href = `https://cloud.mpc1.es/informes/${location.hash}`; }} href={`https://cloud.mpc1.es/informes/${location.hash}`}>Usar Informes con MPC Cloud</a>}
+  function pedirAcceso(despues?: () => void) {
+    pendiente.current = despues ?? null;
+    setError(''); setShowLogin(true);
+  }
+  return <Context.Provider value={{ session, login: pedirAcceso, carpeta, setCarpeta }}>
+    {session && <div className="cloud-bar no-imprimir">
+      <span>MPC Cloud · {session.user.username}</span>
+      <button className="boton" disabled={busy} onClick={async () => {
+        setBusy(true); setError('');
+        try { await cloudLogout(session.csrfToken); setSession(null); }
+        catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+      }}>Cerrar sesión</button>
       {error && <p role="alert">{error}</p>}
-    </div>
-    {showLogin && <CloudDialog title="Iniciar sesión en MPC Cloud" close={() => setShowLogin(false)}>
+    </div>}
+    {showLogin && <CloudDialog title="Iniciar sesión en MPC Cloud" close={() => { pendiente.current = null; setShowLogin(false); }}>
       <p>El uso local y los enlaces compartidos no requieren iniciar sesión.</p>
       <form onSubmit={async e => {
         e.preventDefault(); const form = e.currentTarget; const data = new FormData(form);
@@ -40,6 +52,8 @@ export function CloudProvider({ children }: { children: ReactNode }) {
         try {
           setSession(await cloudLogin(String(data.get('username') ?? ''), String(data.get('password') ?? '')));
           form.reset(); setShowLogin(false);
+          // Entrar no era el objetivo: era el peaje. Se sigue con lo que ibas a hacer.
+          const seguir = pendiente.current; pendiente.current = null; seguir?.();
         } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
       }}>
         <label>Usuario <input name="username" autoComplete="username" required /></label>
@@ -111,14 +125,20 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
       </a>
     );
   }
-  function start(next: 'open' | 'save') {
-    if (!session) { login(); return; }
+  function abrirPanel(next: 'open' | 'save') {
     if (next === 'open' && beforeOpen && !beforeOpen()) return;
     if (next === 'save' && getFile) {
       snapshot.current = getFile();
       setName(snapshot.current.name);
     }
     setStatus(''); setError(''); setMode(next);
+  }
+  function start(next: 'open' | 'save') {
+    // Sin sesión se pide la contraseña y se continúa solo: entrar no era lo
+    // que querías hacer. Abrir el panel no necesita la sesión —la lista la
+    // pide el efecto, que ya ve la nueva—, así que no hace falta esperar.
+    if (!session) { login(() => abrirPanel(next)); return; }
+    abrirPanel(next);
   }
   async function save(destination: string, etag?: string) {
     if (!session || !snapshot.current) return;

@@ -55,7 +55,6 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
   const [origen, setOrigen] = useState('');
   const [error, setError] = useState('');
   const [options, setOptions] = useState<PinoOptions>(() => defaultPinoOptions([]));
-  const [archivoCloud, setArchivoCloud] = useState<File | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -87,7 +86,6 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
       setDataset(nuevo);
       setCsv(texto);
       setOrigen(file.name);
-      setArchivoCloud(file);
       setOptions(defaultPinoOptions(nuevo.anios));
       setError('');
     } catch (err) {
@@ -99,7 +97,6 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
 
   return (
     <section className={`pino ${dataset ? '' : 'pino--vacio'}`} aria-labelledby="pino-titulo">
-      <CloudFiles extension="csv" solo="guardar" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <input
         ref={inputRef}
         type="file"
@@ -146,7 +143,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
             <span className="zona__o">o</span>
             <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
             <p className="zona__pista">
-              O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
+              O arrástralo aquí. Se lee en tu navegador y no se sube a ningún sitio.
             </p>
           </div>
         </>

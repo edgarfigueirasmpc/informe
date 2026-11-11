@@ -102,8 +102,10 @@ try {
   await wait(guest.getByRole('tab', { name: 'Histórico', exact: true }));
   assert(await guest.locator('.historico').innerText().then(t => !t.includes('Carga el CSV histórico')));
   await guest.close(); await invitado.close();
-  await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
-  // Credenciales que no valen: lo dice y no abre sesión.
+  // No hay nada de Cloud en pantalla hasta que se usa: la contraseña se pide al
+  // pulsar «Abrir desde MPC Cloud», y al entrar se sigue con lo que ibas a hacer.
+  assert.equal(await page.getByRole('button', { name: 'Iniciar sesión' }).count(), 0);
+  await page.getByRole('button', { name: 'Abrir desde MPC Cloud', exact: true }).filter({ visible: true }).click();
   await page.getByLabel('Usuario', { exact: true }).fill(usuario);
   await page.getByLabel('Contraseña', { exact: true }).fill(`${clave}-mal`);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
@@ -113,6 +115,10 @@ try {
   await page.getByLabel('Contraseña', { exact: true }).fill(clave);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await wait(page.getByText(`MPC Cloud · ${usuario}`, { exact: true }));
+  // La acción pendiente continúa sola: el panel de carpetas se abre sin repetir el clic.
+  await wait(page.getByRole('dialog').getByText('Carpeta: /', { exact: true }));
+  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
   if (cruzado) {
     // El script necesita su propia credencial para preparar y comprobar datos:
     // la pide al mismo login delegado que usa la aplicación.
@@ -174,13 +180,12 @@ try {
   await page.getByText('Cambios sin guardar', { exact: true }).waitFor({ state: 'hidden' });
   await openCloud('Informe actual', 'informe.pdf');
   await wait(page.getByText(/Informe del .* listo/));
-  await page.getByRole('button', { name: 'Guardar como en MPC Cloud', exact: true }).filter({ visible: true }).click();
-  const pdfDialog = page.getByRole('dialog');
-  await pdfDialog.getByLabel('Nombre', { exact: true }).fill('copia.pdf');
-  await page.getByRole('button', { name: 'Guardar en esta carpeta' }).click();
-  await pdfDialog.waitFor({ state: 'hidden' });
-  const downloadedPdf = await (await api(`files/content?path=${encodeURIComponent(folder + '/copia.pdf')}`)).body();
-  assert.deepEqual(downloadedPdf, pdf);
+  // Guardar sólo se ofrece donde se cambia algo, que es el editor: en las vistas
+  // de lectura el archivo sale igual que entró y copiarlo es cosa de Cloud.
+  for (const seccion of ['Informe actual', 'Histórico', 'Por cliente']) {
+    await page.getByRole('tab', { name: seccion, exact: true }).click();
+    assert.equal(await page.getByRole('button', { name: /Guardar .* en MPC Cloud/ }).count(), 0, seccion);
+  }
   // Con Informes en otro dominio, la sesión de Cloud es suya y aparte: va en su
   // propio contexto para que su cookie no se mezcle con el token de la prueba.
   const cloudCtx = cruzado ? await nuevoContexto() : context;
@@ -209,14 +214,13 @@ try {
     const lectorPage = await otro.newPage();
     lectorPage.on('pageerror', e => errors.push(e.message));
     await lectorPage.goto(appUrl);
-    await lectorPage.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
+    await lectorPage.getByRole('tab', { name: 'Editor CSV', exact: true }).click();
+    await lectorPage.locator('.editor input[type=file]').setInputFiles({ name: 'local.csv', mimeType: 'text/csv', buffer: csv });
+    await lectorPage.getByRole('button', { name: 'Guardar como en MPC Cloud', exact: true }).filter({ visible: true }).click();
     await lectorPage.getByLabel('Usuario', { exact: true }).fill(lector);
     await lectorPage.getByLabel('Contraseña', { exact: true }).fill(claveLector);
     await lectorPage.getByRole('button', { name: 'Entrar', exact: true }).click();
     await wait(lectorPage.getByText(`MPC Cloud · ${lector}`, { exact: true }));
-    await lectorPage.getByRole('tab', { name: 'Editor CSV', exact: true }).click();
-    await lectorPage.locator('.editor input[type=file]').setInputFiles({ name: 'local.csv', mimeType: 'text/csv', buffer: csv });
-    await lectorPage.getByRole('button', { name: 'Guardar como en MPC Cloud', exact: true }).filter({ visible: true }).click();
     await lectorPage.getByRole('dialog').getByLabel('Nombre', { exact: true }).fill('no-deberia.csv');
     await lectorPage.getByRole('button', { name: 'Guardar en esta carpeta' }).click();
     await wait(lectorPage.getByRole('alert').filter({ hasText: /permiso/i }));
@@ -225,5 +229,5 @@ try {
     assert.equal(sobra.status(), 404, 'el lector no debía haber creado nada');
   }
   assert.deepEqual(errors, []);
-  console.log(`PASS (${cruzado ? 'Informes en su propio dominio, CORS + token' : 'Informes servido por Cloud, cookie + CSRF'}): anonymous local CSV/share, invalid+valid login, same session across all views/reload, Cloud CSV/PDF read, ETag replacement/conflict, save as CSV/PDF, edits during upload, reader write denied, visibility in normal MPC Cloud UI, no CSP/page errors.`);
+  console.log(`PASS (${cruzado ? 'Informes en su propio dominio, CORS + token' : 'Informes servido por Cloud, cookie + CSRF'}): anonymous local CSV/share, invalid+valid login, same session across all views/reload, Cloud CSV/PDF read, ETag replacement/conflict, save as CSV, guardar sólo donde se edita, edits during upload, reader write denied, visibility in normal MPC Cloud UI, no CSP/page errors.`);
 } catch (e) { console.error((await page.locator('body').innerText()).slice(-7000)); await mkdir('.cloud-test', { recursive: true }); await page.screenshot({ path: '.cloud-test/failure.png', fullPage: true }); throw e; } finally { await browser.close(); }

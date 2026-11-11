@@ -35,7 +35,6 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
   const [error, setError] = useState('');
   const [origen, setOrigen] = useState('');
   const [options, setOptions] = useState<HistoricalOptions>(() => defaultHistoricalOptions([]));
-  const [archivoCloud, setArchivoCloud] = useState<File | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,7 +72,6 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
       setDatos(nuevosDatos);
       setCsv(csv);
       setOrigen(file.name);
-      setArchivoCloud(file);
       setOptions(defaultHistoricalOptions(anios));
       setError('');
     } catch (err) {
@@ -88,7 +86,6 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
       className={`historico ${datos.length === 0 ? 'historico--vacio' : ''}`}
       aria-labelledby="historico-titulo"
     >
-      <CloudFiles extension="csv" solo="guardar" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <input
         ref={inputRef}
         type="file"
@@ -133,7 +130,7 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
             <span className="zona__o">o</span>
             <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
             <p className="zona__pista">
-              O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
+              O arrástralo aquí. Se lee en tu navegador y no se sube a ningún sitio.
             </p>
           </div>
         </>

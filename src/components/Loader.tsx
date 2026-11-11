@@ -23,7 +23,6 @@ type Estado =
 export function Loader({ onLoaded, conInforme }: Props) {
   const [estado, setEstado] = useState<Estado>({ fase: 'reposo' });
   const [avisos, setAvisos] = useState<string[]>([]);
-  const [archivoCloud, setArchivoCloud] = useState<File | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,7 +42,6 @@ export function Loader({ onLoaded, conInforme }: Props) {
     try {
       const { parsePdfFile } = await import('../lib/pdf');
       const { report, warnings } = await parsePdfFile(file);
-      setArchivoCloud(file);
       setAvisos(warnings);
       onLoaded(report);
       setEstado({
@@ -62,7 +60,6 @@ export function Loader({ onLoaded, conInforme }: Props) {
 
   return (
     <section className={`cargador no-imprimir ${conInforme ? 'cargador--secundario' : ''}`}>
-      <CloudFiles extension="pdf" solo="guardar" onOpen={procesar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <div className="eyebrow">{conInforme ? 'Cargar otro informe' : 'Cargar el informe'}</div>
 
       <div
@@ -99,7 +96,7 @@ export function Loader({ onLoaded, conInforme }: Props) {
         <CloudFiles extension="pdf" solo="abrir" onOpen={procesar} />
 
         <p className="zona__pista">
-          O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
+          O arrástralo aquí. Se lee en tu navegador y no se sube a ningún sitio.
         </p>
       </div>
 
