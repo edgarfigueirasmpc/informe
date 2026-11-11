@@ -34,7 +34,10 @@ entre dominios la credencial es explícita:
    Django y pasa por las ACL, igual que una sesión normal.
 
 CORS se abre para **un único origen exacto**, sin comodines y con
-`allow_credentials` desactivado. Sin `INFORMES_ORIGIN`, Cloud se comporta como
+`allow_credentials` desactivado. Tiene que ser https, salvo en `localhost`, que
+es como se llega al staging por un túnel; el nombre del dominio no está clavado
+en el código a propósito, para que el staging pruebe exactamente la misma
+configuración que se despliega. Sin `INFORMES_ORIGIN`, Cloud se comporta como
 antes: ni preflight ni token.
 
 ### Dónde vive el token, y qué supone
