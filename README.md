@@ -217,13 +217,13 @@ Hay tres compilaciones, según con quién tenga que hablar el navegador:
 | Orden | Resultado | Para qué |
 | --- | --- | --- |
 | `npm run build` | `dist/` | Sólo archivos locales y enlaces compartidos. Sin MPC Cloud. |
-| `npm run build:publico` | `dist-publico/` | La versión definitiva: habla con `cloud.mpc1.es` y con el login de `datos.mpc1.es`. Es la que publica Render. |
+| `npm run build:publico` | `dist-publico/` | La versión definitiva: habla con `cloud.mpc1.es` y con el login de `datos.mpc1.es`. Es la que publica GitHub Pages. |
 | `npm run build:cloud` | `dist-cloud/` | La versión que sirve el propio MPC Cloud en `/informes/`, con su cookie. |
 
 La arquitectura definitiva, cómo se prueba entera en local y qué hay que tocar
-en cada panel está en [`docs/INFORMES-EN-RENDER.md`](docs/INFORMES-EN-RENDER.md).
+en cada panel está en [`docs/INFORMES-DOMINIO-PROPIO.md`](docs/INFORMES-DOMINIO-PROPIO.md).
 
-### GitHub Pages (el alojamiento actual, hasta mover el DNS a Render)
+### GitHub Pages
 
 1. En el repositorio, *Settings → Pages → Source: **GitHub Actions***.
 2. Cada `push` a `main` compila, pasa los tests y publica

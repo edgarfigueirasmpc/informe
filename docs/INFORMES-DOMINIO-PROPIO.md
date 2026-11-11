@@ -1,15 +1,21 @@
 # Informes MPC en su propio dominio
 
 La versión definitiva y única es **https://informes.cacharolo.es**, un sitio
-estático en Render. Habla directamente con la API de MPC Cloud
+estático en GitHub Pages. Habla directamente con la API de MPC Cloud
 (`cloud.mpc1.es`) y con el login delegado de MPC Files (`datos.mpc1.es`). No
 hay pasarela nueva, ni almacenamiento propio, ni copia de los documentos.
+
+El alojamiento da igual mientras sirva ese origen exacto: el CORS se abre para
+`https://informes.cacharolo.es`, no para un proveedor. Se queda en Pages, que
+ya sirve ese dominio, en lugar de mudarlo a Render, porque lo único que
+aportaba la mudanza eran las cabeceras de seguridad, y casi todas se recuperan
+dentro del HTML (ver más abajo).
 
 ## Cómo encaja cada pieza
 
 | Pieza | Dónde | Qué hace |
 | --- | --- | --- |
-| Informes | Render, `informes.cacharolo.es` | HTML/JS/CSS. Ni servidor ni secretos. |
+| Informes | GitHub Pages, `informes.cacharolo.es` | HTML/JS/CSS. Ni servidor ni secretos. |
 | Documentos | MPC Cloud en TrueNAS, `cloud.mpc1.es` | Las carpetas de siempre, con sus ACL, papelera, auditoría y ETags. |
 | Identidad | Django corporativo | Emite el token y decide los permisos por proyecto. |
 | Login | MPC Files API, `datos.mpc1.es` | `POST /api/auth/token/`: comprueba la contraseña contra Django con límites de intentos y errores uniformes. No emite tokens ni guarda nada. |
@@ -105,16 +111,13 @@ Cloud por sí solo, salvo donde se indica.
    de servicio y la cookie siguen igual. Reiniciar la aplicación invalida las
    sesiones en memoria, como cualquier actualización.
 
-3. **Render** — Static Site desde este repositorio:
-   `npm ci && npm test && npm run build:publico`, publicando `dist-publico`.
-   Está descrito en [`render.yaml`](../render.yaml). Dominio propio
-   `informes.cacharolo.es`.
+3. **GitHub** — nada que configurar: el despliegue de siempre
+   ([`desplegar.yml`](../.github/workflows/desplegar.yml)) pasa a compilar
+   `build:publico` y a publicar `dist-publico`. **Fusionar a `main` es publicar**:
+   hasta entonces el sitio actual sigue sirviendo la versión sin Cloud. El
+   dominio y el DNS no se tocan.
 
-4. **DNS (Hostalia)** — cuando Render responda y se haya comprobado, apuntar
-   `informes` a Render en lugar de a GitHub Pages. Hasta ese momento el sitio
-   actual sigue sirviendo con normalidad.
-
-Comprobación de que el origen está admitido, antes de tocar el DNS:
+Comprobación de que el origen está admitido:
 
 ```sh
 curl -si -X OPTIONS https://datos.mpc1.es/api/auth/token/ \
@@ -130,6 +133,21 @@ curl -si -X OPTIONS https://cloud.mpc1.es/api/fs/list \
 ```
 
 Las dos deben devolver `access-control-allow-origin` con ese origen exacto.
+
+## Cabeceras: lo que Pages no deja poner
+
+GitHub Pages no manda ninguna cabecera de seguridad y no admite configurarlas.
+La política de contenido se inyecta en el HTML al compilar
+([`vite.config.ts`](../vite.config.ts)), con los mismos orígenes con los que se
+compila: así dice exactamente con quién puede hablar esa compilación, y en las
+pruebas locales dice localhost. Vale todo menos `frame-ancestors`, que no
+funciona en una etiqueta meta; en su lugar, la aplicación no se monta si está
+dentro de un marco ajeno ([`src/main.tsx`](../src/main.tsx)).
+
+Lo que se queda sin equivalente es `Strict-Transport-Security`. El dominio se
+sirve sólo por https y el navegador no guarda la preferencia entre visitas. Si
+algún día importa, es razón suficiente para mudar el alojamiento a algo que
+mande cabeceras; hoy no compensa.
 
 ## Retirar la versión integrada
 

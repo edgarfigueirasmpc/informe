@@ -1,7 +1,9 @@
 name: Desplegar
 
 # El sitio es completamente estático: se compila y se publica tal cual. No hay
-# secretos que inyectar porque no hay nada que autenticar.
+# secretos que inyectar: la contraseña va al login corporativo desde el
+# navegador, y lo único que se compila aquí son los dos orígenes con los que
+# habla (MPC Cloud y el login delegado), que no son secretos.
 on:
   push:
     branches: [main]
@@ -30,11 +32,11 @@ jobs:
 
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      - run: npm run build:publico
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: dist-publico
 
   desplegar:
     needs: compilar
