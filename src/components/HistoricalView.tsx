@@ -88,7 +88,7 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
       className={`historico ${datos.length === 0 ? 'historico--vacio' : ''}`}
       aria-labelledby="historico-titulo"
     >
-      <CloudFiles extension="csv" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
+      <CloudFiles extension="csv" solo="guardar" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <input
         ref={inputRef}
         type="file"
@@ -129,6 +129,9 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
             >
               Elegir el CSV histórico
             </button>
+
+            <span className="zona__o">o</span>
+            <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
             <p className="zona__pista">
               O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
             </p>
@@ -150,6 +153,7 @@ export function HistoricalView({ initial, initialVersion, linkError, onChange }:
             <button className="boton" type="button" onClick={() => inputRef.current?.click()}>
               Cargar otro CSV
             </button>
+            <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
             {origen && (
               <span className="historico__archivo" title={origen}>
                 {origen}

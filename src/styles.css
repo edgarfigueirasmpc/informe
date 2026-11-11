@@ -1894,7 +1894,11 @@ td:last-child .editable {
 
 .zona {
   display: flex;
-  flex-direction: column;
+  /* En fila: subir un archivo del equipo y traerlo de MPC Cloud son la misma
+     decisión, así que se ofrecen juntas y no una encima de otra. La pista de
+     arrastre baja sola porque ocupa el ancho entero. */
+  flex-flow: row wrap;
+  justify-content: center;
   align-items: center;
   gap: 0.9rem;
   margin-top: 1.25rem;
@@ -2920,6 +2924,40 @@ td:last-child .editable {
 }
 
 
+/* La «o» que separa las dos formas de traer un archivo al recuadro. */
+.zona__o {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+/* Estrecho: los dos botones no caben uno al lado del otro y, al partirse la
+   fila, la «o» se quedaba colgando al final de la primera. En columna vuelve a
+   quedar entre medias, que es donde significa algo. */
+@media (max-width: 560px) {
+  .zona { flex-direction: column; }
+}
+
+.cloud-abrir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cloud-logo {
+  width: 26px;
+  height: auto;
+  flex: none;
+  /* El logotipo es a color; en oscuro se apaga un punto para que no deslumbre
+     junto al texto del botón. */
+  opacity: 0.95;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cloud-logo {
+    opacity: 0.85;
+  }
+}
+
 /* --- Editor de CSV ---------------------------------------------------------- */
 
 /* El editor se queda montado al cambiar de pestaña, para no perder lo que se
@@ -3332,6 +3370,10 @@ td:last-child .editable {
 
 /* Corporate storage controls are independent of the local report workflow. */
 .cloud-bar, .cloud-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin: 1rem auto; max-width: 1200px; padding: .6rem; }
+/* El botón de Cloud va dentro del recuadro de carga, así que su contenedor no
+   aporta ni margen ni ancho propios: es un botón más de la fila. Va después de
+   la regla de arriba porque, a igualdad de especificidad, manda la última. */
+.cloud-actions--en-zona { margin: 0; padding: 0; max-width: none; gap: 0; }
 .cloud-dialog { color: var(--texto, #18382e); background: var(--fondo, #fff); border: 1px solid #83988a; border-radius: 12px; padding: 1.5rem; width: min(640px, 92vw); max-height: 85vh; overflow: auto; }
 .cloud-dialog::backdrop { background: #10251b88; }
 .cloud-dialog label { display: block; margin: .8rem 0; }

@@ -99,7 +99,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
 
   return (
     <section className={`pino ${dataset ? '' : 'pino--vacio'}`} aria-labelledby="pino-titulo">
-      <CloudFiles extension="csv" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
+      <CloudFiles extension="csv" solo="guardar" onOpen={cargar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <input
         ref={inputRef}
         type="file"
@@ -142,6 +142,9 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
             >
               Elegir el CSV
             </button>
+
+            <span className="zona__o">o</span>
+            <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
             <p className="zona__pista">
               O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.
             </p>
@@ -164,6 +167,7 @@ export function PinoView({ initial, initialVersion, linkError, onChange }: Props
             <button className="boton" type="button" onClick={() => inputRef.current?.click()}>
               Cargar otro CSV
             </button>
+            <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
             {origen && (
               <span className="pino__archivo" title={origen}>
                 {origen}

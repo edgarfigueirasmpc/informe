@@ -62,7 +62,7 @@ export function Loader({ onLoaded, conInforme }: Props) {
 
   return (
     <section className={`cargador no-imprimir ${conInforme ? 'cargador--secundario' : ''}`}>
-      <CloudFiles extension="pdf" onOpen={procesar} getFile={archivoCloud ? () => archivoCloud : undefined} />
+      <CloudFiles extension="pdf" solo="guardar" onOpen={procesar} getFile={archivoCloud ? () => archivoCloud : undefined} />
       <div className="eyebrow">{conInforme ? 'Cargar otro informe' : 'Cargar el informe'}</div>
 
       <div
@@ -94,6 +94,9 @@ export function Loader({ onLoaded, conInforme }: Props) {
         >
           {ocupado ? 'Leyendo el PDF' : 'Elegir el PDF del día'}
         </button>
+
+        <span className="zona__o">o</span>
+        <CloudFiles extension="pdf" solo="abrir" onOpen={procesar} />
 
         <p className="zona__pista">
           O arrástralo aquí. Se lee en tu navegador; solo se guarda en MPC Cloud si eliges Guardar como.

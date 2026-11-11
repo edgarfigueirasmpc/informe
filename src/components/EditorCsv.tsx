@@ -265,7 +265,7 @@ export function EditorCsv() {
         }
       }}
     >
-      <CloudFiles extension="csv" source={cloudSource}
+      <CloudFiles extension="csv" solo="guardar" source={cloudSource}
         onOpen={cargar}
         getFile={documento ? () => {
           savedSnapshot.current = { document: documento, generation: generation.current };
@@ -318,6 +318,9 @@ export function EditorCsv() {
             >
               Elegir un CSV
             </button>
+
+            <span className="zona__o">o</span>
+            <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
             <p className="zona__pista">O arrástralo aquí.</p>
           </div>
         </>
@@ -348,6 +351,7 @@ export function EditorCsv() {
               <button className="boton" type="button" onClick={() => inputRef.current?.click()}>
                 Cargar otro
               </button>
+              <CloudFiles extension="csv" solo="abrir" onOpen={cargar} />
               <button
                 className="boton"
                 type="button"

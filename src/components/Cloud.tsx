@@ -1,14 +1,24 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { childPath, cloudEnabled, cloudJson, readCloudFile, saveCloudFile, type CloudEntry, type CloudSession, type CloudSource } from '../lib/cloud';
 
-const Context = createContext<{ session: CloudSession | null; login: () => void }>({ session: null, login() {} });
+/**
+ * `carpeta` es compartida a propósito: la carpeta en la que estás trabajando es
+ * una sola, no una por botón. Así «Guardar como» aparece donde abriste el
+ * archivo, y cada vista recuerda dónde estabas aunque los botones de abrir y de
+ * guardar sean instancias distintas.
+ */
+const Context = createContext<{
+  session: CloudSession | null; login: () => void;
+  carpeta: string; setCarpeta: (ruta: string) => void;
+}>({ session: null, login() {}, carpeta: '/', setCarpeta() {} });
 export function CloudProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<CloudSession | null>(null);
+  const [carpeta, setCarpeta] = useState('/');
   const [showLogin, setShowLogin] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (cloudEnabled) void cloudJson<CloudSession>('session').then(setSession).catch(() => {}); }, []);
-  return <Context.Provider value={{ session, login: () => setShowLogin(true) }}>
+  return <Context.Provider value={{ session, login: () => setShowLogin(true), carpeta, setCarpeta }}>
     <div className="cloud-bar no-imprimir">
       {cloudEnabled ? <>
         <span>{session ? `MPC Cloud · ${session.user.username}` : 'MPC Cloud · sesión opcional'}</span>
@@ -48,14 +58,37 @@ function CloudDialog({ title, close, children }: { title: string; close: () => v
   </dialog>;
 }
 
-export function CloudFiles({ extension, onOpen, getFile, source, onSaved, beforeOpen }: {
+/**
+ * El logotipo de MPC Cloud. Vive en la raíz de Cloud, que es el mismo origen que
+ * sirve Informes cuando va integrado; en el sitio suelto hay que ir a buscarlo.
+ */
+function LogoCloud({ integrado }: { integrado: boolean }) {
+  return (
+    <img
+      className="cloud-logo"
+      src={integrado ? '/logo-cloud.png' : 'https://cloud.mpc1.es/logo-cloud.png'}
+      alt=""
+      width={26}
+      height={16}
+      draggable={false}
+    />
+  );
+}
+
+export function CloudFiles({ extension, onOpen, getFile, source, onSaved, beforeOpen, solo }: {
   extension: 'csv' | 'pdf'; onOpen: (file: File, source: CloudSource) => void | Promise<void>;
   getFile?: () => File; source?: CloudSource | null; onSaved?: (source: CloudSource) => void;
   beforeOpen?: () => boolean;
+  /**
+   * `abrir` para ponerlo dentro del recuadro de carga, junto al botón de elegir
+   * archivo: subir del equipo y traer de Cloud son la misma decisión y se
+   * entienden mejor juntas. `guardar` para el resto de acciones, que aparecen
+   * cuando ya hay algo cargado y no tienen sitio ahí.
+   */
+  solo?: 'abrir' | 'guardar';
 }) {
-  const { session, login } = useContext(Context);
+  const { session, login, carpeta: path, setCarpeta: setPath } = useContext(Context);
   const [mode, setMode] = useState<'open' | 'save' | null>(null);
-  const [path, setPath] = useState('/');
   const [entries, setEntries] = useState<CloudEntry[]>([]);
   const [truncated, setTruncated] = useState(false);
   const [name, setName] = useState('');
@@ -73,11 +106,25 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
     }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [path, mode, session]);
-  if (!cloudEnabled) return <a className="boton no-imprimir" href={`https://cloud.mpc1.es/informes/${location.hash}`}>Abrir desde MPC Cloud</a>;
+  const verAbrir = solo !== 'guardar';
+  const verGuardar = solo !== 'abrir';
+  if (!cloudEnabled) {
+    // Sitio suelto: no hay sesión ni API, solo el salto a la versión integrada.
+    if (!verAbrir) return null;
+    return (
+      <a className="boton cloud-abrir no-imprimir" href={`https://cloud.mpc1.es/informes/${location.hash}`}>
+        <LogoCloud integrado={false} />
+        Abrir desde MPC Cloud
+      </a>
+    );
+  }
   function start(next: 'open' | 'save') {
     if (!session) { login(); return; }
     if (next === 'open' && beforeOpen && !beforeOpen()) return;
-    if (next === 'save' && getFile) { snapshot.current = getFile(); setName(snapshot.current.name); }
+    if (next === 'save' && getFile) {
+      snapshot.current = getFile();
+      setName(snapshot.current.name);
+    }
     setStatus(''); setError(''); setMode(next);
   }
   async function save(destination: string, etag?: string) {
@@ -88,13 +135,16 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
       onSaved?.(result); setStatus(`Guardado en MPC Cloud: ${result.path}`); setMode(null);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  return <div className="cloud-actions no-imprimir">
-    <button className="boton" disabled={busy} onClick={() => start('open')}>Abrir desde MPC Cloud</button>
-    {getFile && <button className="boton" disabled={busy} onClick={() => start('save')}>Guardar como en MPC Cloud</button>}
-    {getFile && source && <button className="boton" disabled={busy} onClick={() => {
+  return <div className={`cloud-actions no-imprimir ${solo === 'abrir' ? 'cloud-actions--en-zona' : ''}`}>
+    {verAbrir && <button className="boton cloud-abrir" disabled={busy} onClick={() => start('open')}>
+      <LogoCloud integrado />
+      Abrir desde MPC Cloud
+    </button>}
+    {verGuardar && getFile && <button className="boton" disabled={busy} onClick={() => start('save')}>Guardar como en MPC Cloud</button>}
+    {verGuardar && getFile && source && <button className="boton" disabled={busy} onClick={() => {
       if (!session) { login(); return; } snapshot.current = getFile(); void save(source.path, source.etag);
     }}>Guardar sobre el original en MPC Cloud</button>}
-    {source && <span>Origen: {source.path}</span>}
+    {verGuardar && source && <span>Origen: {source.path}</span>}
     {status && <p role="status">{status}</p>}
     {error && !mode && <p role="alert">{error}</p>}
     {mode && <CloudDialog title={mode === 'open' ? 'Abrir desde MPC Cloud' : 'Guardar como en MPC Cloud'} close={() => { if (!busy) setMode(null); }}>
