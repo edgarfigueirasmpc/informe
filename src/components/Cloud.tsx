@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import logoCloud from '../assets/logo-cloud.png';
 import { childPath, cloudEnabled, cloudJson, cloudLogin, cloudLogout, cloudSession, readCloudFile, saveCloudFile, type CloudEntry, type CloudSession, type CloudSource } from '../lib/cloud';
 
 /**
@@ -59,20 +60,12 @@ function CloudDialog({ title, close, children }: { title: string; close: () => v
 }
 
 /**
- * El logotipo de MPC Cloud. Vive en la raíz de Cloud, que es el mismo origen que
- * sirve Informes cuando va integrado; en el sitio suelto hay que ir a buscarlo.
+ * El logotipo de MPC Cloud, servido por Informes. Antes se traía de Cloud, pero
+ * desde un dominio propio eso es una petición a otro origen que la política de
+ * contenido tendría que permitir, y una imagen rota si Cloud no responde.
  */
-function LogoCloud({ integrado }: { integrado: boolean }) {
-  return (
-    <img
-      className="cloud-logo"
-      src={integrado ? '/logo-cloud.png' : 'https://cloud.mpc1.es/logo-cloud.png'}
-      alt=""
-      width={26}
-      height={16}
-      draggable={false}
-    />
-  );
+function LogoCloud() {
+  return <img className="cloud-logo" src={logoCloud} alt="" width={26} height={16} draggable={false} />;
 }
 
 export function CloudFiles({ extension, onOpen, getFile, source, onSaved, beforeOpen, solo }: {
@@ -113,7 +106,7 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
     if (!verAbrir) return null;
     return (
       <a className="boton cloud-abrir no-imprimir" href={`https://cloud.mpc1.es/informes/${location.hash}`}>
-        <LogoCloud integrado={false} />
+        <LogoCloud />
         Abrir desde MPC Cloud
       </a>
     );
@@ -137,7 +130,7 @@ export function CloudFiles({ extension, onOpen, getFile, source, onSaved, before
   }
   return <div className={`cloud-actions no-imprimir ${solo === 'abrir' ? 'cloud-actions--en-zona' : ''}`}>
     {verAbrir && <button className="boton cloud-abrir" disabled={busy} onClick={() => start('open')}>
-      <LogoCloud integrado />
+      <LogoCloud />
       Abrir desde MPC Cloud
     </button>}
     {verGuardar && getFile && <button className="boton" disabled={busy} onClick={() => start('save')}>Guardar como en MPC Cloud</button>}
