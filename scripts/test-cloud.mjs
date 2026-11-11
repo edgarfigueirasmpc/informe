@@ -24,8 +24,17 @@ const loginApi = process.env.CLOUD_LOGIN_API ?? origin;
 const lector = process.env.CLOUD_READER_USER ?? 'lector';
 const claveLector = process.env.CLOUD_READER_PASSWORD ?? clave;
 let token = null;
-const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext();
+// Aceptación con los dominios reales: el navegador resuelve informes.cacharolo.es
+// y cloud.mpc1.es contra el frente local que va al staging. Sólo dentro de este
+// navegador; el sistema y el resto de la red no se enteran.
+const reglasDeHost = process.env.BROWSER_HOST_RULES ?? '';
+const browser = await chromium.launch({
+  headless: true,
+  ...(reglasDeHost ? { args: [`--host-resolver-rules=${reglasDeHost}`] } : {}),
+});
+/** Todo contexto nuevo necesita las mismas opciones: si no, el certificado de pruebas lo rechaza. */
+const nuevoContexto = () => browser.newContext(reglasDeHost ? { ignoreHTTPSErrors: true } : {});
+const context = await nuevoContexto();
 const page = await context.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
@@ -73,16 +82,26 @@ function fixturePdf(pages) {
   return Buffer.from(pdf, 'latin1');
 }
 try {
+  if (reglasDeHost) {
+    // Antes de escribir nada: comprobar que lo que el navegador llama Cloud es
+    // el frente de pruebas. Si la resolución fallara, la prueba estaría
+    // escribiendo en el Cloud de verdad, y eso no puede pasar ni una vez.
+    for (const url of [appUrl, `${process.env.CLOUD_BROWSER_ORIGIN ?? origin}/api/session`]) {
+      const sonda = await page.goto(url);
+      assert.equal(sonda?.headers()['x-frente-aceptacion'], '1', `${url} NO sale del frente de pruebas`);
+    }
+  }
   await page.goto(appUrl);
   await page.getByRole('tab', { name: 'Histórico', exact: true }).click();
   await page.locator('.historico input[type=file]').setInputFiles({ name: 'local.csv', mimeType: 'text/csv', buffer: csv });
   await wait(page.getByText(/local\.csv/));
   await page.waitForFunction(() => location.hash.startsWith('#h='));
   const shared = page.url();
-  const guest = await browser.newPage(); await guest.goto(shared);
+  const invitado = await nuevoContexto();
+  const guest = await invitado.newPage(); await guest.goto(shared);
   await wait(guest.getByRole('tab', { name: 'Histórico', exact: true }));
   assert(await guest.locator('.historico').innerText().then(t => !t.includes('Carga el CSV histórico')));
-  await guest.close();
+  await guest.close(); await invitado.close();
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
   // Credenciales que no valen: lo dice y no abre sesión.
   await page.getByLabel('Usuario', { exact: true }).fill(usuario);
@@ -164,7 +183,7 @@ try {
   assert.deepEqual(downloadedPdf, pdf);
   // Con Informes en otro dominio, la sesión de Cloud es suya y aparte: va en su
   // propio contexto para que su cookie no se mezcle con el token de la prueba.
-  const cloudCtx = cruzado ? await browser.newContext() : context;
+  const cloudCtx = cruzado ? await nuevoContexto() : context;
   const cloud = await cloudCtx.newPage(); await cloud.goto(origin);
   if (cruzado) {
     // Cloud es otro dominio con su propia sesión: aquí se entra por su login,
@@ -186,7 +205,7 @@ try {
   if (lector) {
     // Una cuenta de solo lectura entra, pero no escribe: lo decide Django, no
     // el frontend. Contexto aparte para no tocar la sesión de la prueba.
-    const otro = await browser.newContext();
+    const otro = await nuevoContexto();
     const lectorPage = await otro.newPage();
     lectorPage.on('pageerror', e => errors.push(e.message));
     await lectorPage.goto(appUrl);
