@@ -6,5 +6,6 @@ dist/
 *.log
 
 dist-cloud/
+dist-publico/
 .cloud-test/
 __pycache__/

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { childPath, cloudEnabled, cloudJson, readCloudFile, saveCloudFile, type CloudEntry, type CloudSession, type CloudSource } from '../lib/cloud';
+import { childPath, cloudEnabled, cloudJson, cloudLogin, cloudLogout, cloudSession, readCloudFile, saveCloudFile, type CloudEntry, type CloudSession, type CloudSource } from '../lib/cloud';
 
 /**
  * `carpeta` es compartida a propósito: la carpeta en la que estás trabajando es
@@ -17,7 +17,7 @@ export function CloudProvider({ children }: { children: ReactNode }) {
   const [showLogin, setShowLogin] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (cloudEnabled) void cloudJson<CloudSession>('session').then(setSession).catch(() => {}); }, []);
+  useEffect(() => { void cloudSession().then(setSession); }, []);
   return <Context.Provider value={{ session, login: () => setShowLogin(true), carpeta, setCarpeta }}>
     <div className="cloud-bar no-imprimir">
       {cloudEnabled ? <>
@@ -25,7 +25,7 @@ export function CloudProvider({ children }: { children: ReactNode }) {
         <button className="boton" onClick={() => { setError(''); setShowLogin(true); }}> {session ? 'Renovar sesión' : 'Iniciar sesión'}</button>
         {session && <button className="boton" disabled={busy} onClick={async () => {
           setBusy(true); setError('');
-          try { await cloudJson('session', 'DELETE', undefined, session.csrfToken); setSession(null); }
+          try { await cloudLogout(session.csrfToken); setSession(null); }
           catch (e) { setError((e as Error).message); } finally { setBusy(false); }
         }}>Cerrar sesión</button>}
       </> : <a onClick={e => { e.currentTarget.href = `https://cloud.mpc1.es/informes/${location.hash}`; }} href={`https://cloud.mpc1.es/informes/${location.hash}`}>Usar Informes con MPC Cloud</a>}
@@ -37,7 +37,7 @@ export function CloudProvider({ children }: { children: ReactNode }) {
         e.preventDefault(); const form = e.currentTarget; const data = new FormData(form);
         setBusy(true); setError('');
         try {
-          setSession(await cloudJson<CloudSession>('session', 'POST', { username: data.get('username'), password: data.get('password') }));
+          setSession(await cloudLogin(String(data.get('username') ?? ''), String(data.get('password') ?? '')));
           form.reset(); setShowLogin(false);
         } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
       }}>

@@ -10,7 +10,9 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "build:cloud": "tsc -b && VITE_MPC_CLOUD=true vite build --outDir dist-cloud",
-    "test:cloud": "node scripts/test-cloud.mjs"
+    "test:cloud": "node scripts/test-cloud.mjs",
+    "build:publico": "tsc -b && VITE_MPC_CLOUD_API=\"${MPC_CLOUD_API:-https://cloud.mpc1.es}\" VITE_MPC_LOGIN_API=\"${MPC_LOGIN_API:-https://datos.mpc1.es}\" vite build --outDir dist-publico",
+    "test:publico": "INFORMES_URL=http://localhost:8181/ CLOUD_LOGIN_API=http://localhost:8190 node scripts/test-cloud.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^4.10.38",

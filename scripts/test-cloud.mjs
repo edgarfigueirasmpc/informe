@@ -11,6 +11,19 @@ const { chromium } = require('@playwright/test');
 const origin = process.env.CLOUD_ORIGIN ?? 'http://localhost:8180';
 const usuario = process.env.CLOUD_USER ?? 'ana';
 const clave = process.env.CLOUD_PASSWORD ?? 'secreto-123';
+// Dos despliegues, una sola prueba: Informes servido por Cloud en /informes/, o
+// Informes en su propio dominio hablando con Cloud por CORS. Lo único que
+// cambia es dónde vive la página y cómo se presenta este script ante la API:
+// con la cookie y su CSRF, o con el token que emitió Django.
+const appUrl = process.env.INFORMES_URL ?? `${origin}/informes/`;
+const appOrigin = new URL(appUrl).origin;
+const cruzado = appOrigin !== origin;
+const loginApi = process.env.CLOUD_LOGIN_API ?? origin;
+// Cuenta de solo lectura. Vacía: se omite esa comprobación (p. ej. si en ese
+// entorno no existe una cuenta técnica de lectura).
+const lector = process.env.CLOUD_READER_USER ?? 'lector';
+const claveLector = process.env.CLOUD_READER_PASSWORD ?? clave;
+let token = null;
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext();
 const page = await context.newPage();
@@ -21,19 +34,25 @@ const suffix = Date.now();
 const folder = `/Pruebas-${suffix}`;
 const csv = Buffer.from('anio;mes;tn_totales;puntal_finsa\n2026;Enero;100;100\n');
 const wait = (locator) => locator.waitFor({ state: 'visible' });
-async function api(url, method = 'GET', data, token) {
+/** Credencial de este script ante la API, la misma que usa la aplicación. */
+function cabeceras(csrf) {
+  return cruzado
+    ? { Origin: appOrigin, Authorization: `Token ${token}` }
+    : { Origin: origin, ...(csrf ? { 'X-CSRF-Token': csrf } : {}) };
+}
+async function api(url, method = 'GET', data, csrf) {
   const r = await context.request.fetch(origin + '/api/' + url, {
-    method, data, headers: { Origin: origin, ...(token ? { 'X-CSRF-Token': token } : {}) },
+    method, data, headers: cabeceras(csrf),
   });
   assert(r.ok(), `${method} ${url}: ${r.status()} ${await r.text()}`);
   return r;
 }
-async function upload(name, data, token, etag) {
-  const start = await api('uploads', 'POST', { path: folder, name, size: data.length, onConflict: etag ? 'replace' : 'fail', ...(etag ? { ifMatch: etag } : {}) }, token);
+async function upload(name, data, csrf, etag) {
+  const start = await api('uploads', 'POST', { path: folder, name, size: data.length, onConflict: etag ? 'replace' : 'fail', ...(etag ? { ifMatch: etag } : {}) }, csrf);
   const { id } = await start.json();
-  const part = await context.request.put(`${origin}/api/uploads/${id}?offset=0`, { data, headers: { Origin: origin, 'X-CSRF-Token': token, 'Content-Type': 'application/octet-stream', 'X-Chunk-SHA256': createHash('sha256').update(data).digest('hex') } });
+  const part = await context.request.put(`${origin}/api/uploads/${id}?offset=0`, { data, headers: { ...cabeceras(csrf), 'Content-Type': 'application/octet-stream', 'X-Chunk-SHA256': createHash('sha256').update(data).digest('hex') } });
   assert(part.ok(), await part.text());
-  return (await api(`uploads/${id}/complete`, 'POST', {}, token)).json();
+  return (await api(`uploads/${id}/complete`, 'POST', {}, csrf)).json();
 }
 // A valid PDF built from the existing coordinate fixture, entirely synthetic test output.
 function fixturePdf(pages) {
@@ -54,7 +73,7 @@ function fixturePdf(pages) {
   return Buffer.from(pdf, 'latin1');
 }
 try {
-  await page.goto(origin + '/informes/');
+  await page.goto(appUrl);
   await page.getByRole('tab', { name: 'Histórico', exact: true }).click();
   await page.locator('.historico input[type=file]').setInputFiles({ name: 'local.csv', mimeType: 'text/csv', buffer: csv });
   await wait(page.getByText(/local\.csv/));
@@ -65,10 +84,23 @@ try {
   assert(await guest.locator('.historico').innerText().then(t => !t.includes('Carga el CSV histórico')));
   await guest.close();
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
+  // Credenciales que no valen: lo dice y no abre sesión.
+  await page.getByLabel('Usuario', { exact: true }).fill(usuario);
+  await page.getByLabel('Contraseña', { exact: true }).fill(`${clave}-mal`);
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await wait(page.getByRole('dialog').getByRole('alert').filter({ hasText: 'Usuario o contraseña incorrectos' }));
+  assert.equal(await page.getByText(`MPC Cloud · ${usuario}`, { exact: true }).count(), 0);
   await page.getByLabel('Usuario', { exact: true }).fill(usuario);
   await page.getByLabel('Contraseña', { exact: true }).fill(clave);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await wait(page.getByText(`MPC Cloud · ${usuario}`, { exact: true }));
+  if (cruzado) {
+    // El script necesita su propia credencial para preparar y comprobar datos:
+    // la pide al mismo login delegado que usa la aplicación.
+    const r = await context.request.post(`${loginApi}/api/auth/token/`, { data: { username: usuario, password: clave }, headers: { Origin: appOrigin } });
+    assert(r.ok(), `login ${r.status()} ${await r.text()}`);
+    token = (await r.json()).token;
+  }
   const session = await (await api('session')).json(); const csrf = session.csrfToken;
   await api('fs/folders', 'POST', { path: '/', name: folder.slice(1) }, csrf);
   await upload('datos.csv', csv, csrf);
@@ -130,16 +162,49 @@ try {
   await pdfDialog.waitFor({ state: 'hidden' });
   const downloadedPdf = await (await api(`files/content?path=${encodeURIComponent(folder + '/copia.pdf')}`)).body();
   assert.deepEqual(downloadedPdf, pdf);
-  const cloud = await context.newPage(); await cloud.goto(origin);
+  // Con Informes en otro dominio, la sesión de Cloud es suya y aparte: va en su
+  // propio contexto para que su cookie no se mezcle con el token de la prueba.
+  const cloudCtx = cruzado ? await browser.newContext() : context;
+  const cloud = await cloudCtx.newPage(); await cloud.goto(origin);
+  if (cruzado) {
+    // Cloud es otro dominio con su propia sesión: aquí se entra por su login,
+    // que es justo lo que hace un trabajador que abre cloud.mpc1.es.
+    await cloud.getByLabel('Usuario').fill(usuario);
+    await cloud.getByLabel('Contraseña').fill(clave);
+    await cloud.getByRole('button', { name: /Entrar/ }).click();
+  }
   await wait(cloud.getByText(folder.slice(1), { exact: true }));
   await cloud.getByText(folder.slice(1), { exact: true }).dblclick();
   await wait(cloud.getByText('copia.csv', { exact: true }));
   await mkdir('.cloud-test', { recursive: true });
   await cloud.screenshot({ path: '.cloud-test/cloud.png', fullPage: true });
   await cloud.close();
+  if (cruzado) await cloudCtx.close();
   await page.getByRole('tab', { name: 'Editor CSV', exact: true }).click();
   await page.screenshot({ path: '.cloud-test/editor.png', fullPage: true });
   await page.reload(); await wait(page.getByText(`MPC Cloud · ${usuario}`, { exact: true }));
+  if (lector) {
+    // Una cuenta de solo lectura entra, pero no escribe: lo decide Django, no
+    // el frontend. Contexto aparte para no tocar la sesión de la prueba.
+    const otro = await browser.newContext();
+    const lectorPage = await otro.newPage();
+    lectorPage.on('pageerror', e => errors.push(e.message));
+    await lectorPage.goto(appUrl);
+    await lectorPage.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
+    await lectorPage.getByLabel('Usuario', { exact: true }).fill(lector);
+    await lectorPage.getByLabel('Contraseña', { exact: true }).fill(claveLector);
+    await lectorPage.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await wait(lectorPage.getByText(`MPC Cloud · ${lector}`, { exact: true }));
+    await lectorPage.getByRole('tab', { name: 'Editor CSV', exact: true }).click();
+    await lectorPage.locator('.editor input[type=file]').setInputFiles({ name: 'local.csv', mimeType: 'text/csv', buffer: csv });
+    await lectorPage.getByRole('button', { name: 'Guardar como en MPC Cloud', exact: true }).filter({ visible: true }).click();
+    await lectorPage.getByRole('dialog').getByLabel('Nombre', { exact: true }).fill('no-deberia.csv');
+    await lectorPage.getByRole('button', { name: 'Guardar en esta carpeta' }).click();
+    await wait(lectorPage.getByRole('alert').filter({ hasText: /permiso/i }));
+    await otro.close();
+    const sobra = await context.request.fetch(`${origin}/api/fs/info?path=${encodeURIComponent('/no-deberia.csv')}`, { headers: cabeceras(csrf) });
+    assert.equal(sobra.status(), 404, 'el lector no debía haber creado nada');
+  }
   assert.deepEqual(errors, []);
-  console.log('PASS: anonymous local CSV/share, login, same session across all views/reload, Cloud CSV/PDF read, ETag replacement/conflict, save as CSV/PDF, edits during upload, visibility in normal MPC Cloud UI, no CSP/page errors.');
+  console.log(`PASS (${cruzado ? 'Informes en su propio dominio, CORS + token' : 'Informes servido por Cloud, cookie + CSRF'}): anonymous local CSV/share, invalid+valid login, same session across all views/reload, Cloud CSV/PDF read, ETag replacement/conflict, save as CSV/PDF, edits during upload, reader write denied, visibility in normal MPC Cloud UI, no CSP/page errors.`);
 } catch (e) { console.error((await page.locator('body').innerText()).slice(-7000)); await mkdir('.cloud-test', { recursive: true }); await page.screenshot({ path: '.cloud-test/failure.png', fullPage: true }); throw e; } finally { await browser.close(); }
